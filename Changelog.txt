@@ -1,0 +1,36 @@
+--- v1.4 (Dec 3, 2006)
+	- Added support for Atari style joysticks. Two button
+	  variations (SMS) are supported.
+	- Added padding to nes report descriptor. This makes it
+	  work correcly on windows. Linux sure is tolerant...
+
+--- v1.3 (Oct 28, 2006)
+	- Fixed a bug in nes.c, snes.c and snesmouse.c which prevented the pullup
+		on the data pin (from device) from being enabled. This resulted in
+		random button toggling when no controller was connected.
+	- A separate USB PID is used when in NES mode.
+	- PD1 is now left as input (no pullup) since it is shorted with PD0 on the
+	  PCB rev.C. (And I didnt want to scrap a batch of 50 pcb nor cut a track
+	  and solder a wire 50 times...)
+
+--- v1.2 (Oct 6, 2006)
+Added serial number
+Added support for Snes mouse (auto detected in snes mode)
+	- Default speed: Low
+	- 3 Speeds selectable by holding some buttons at
+	  startup (USB connect or mouse connect)
+	  Left+right buttons: Low speed
+	  Left buton: Medium speed
+	  Right button: High speed
+	  No button: Default speed when USB connect,
+	  			continue using same speed for mouse (re)-connect
+
+--- v1.1
+Reworked report descriptor for better behaviour 
+in Windows and Mac OS X
+
+--- v1.0 (Jul 5, 2006)
+Initial release:
+Snes gamepad support
+Nes gamepad support
+

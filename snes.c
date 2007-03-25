@@ -1,0 +1,339 @@
+/* Name: snes.c
+ * Project: Multiple NES/SNES to USB converter
+ * Author: Raphael Assenat <raph@raphnet.net>
+ * Copyright: (C) 2007 Raphael Assenat <raph@raphnet.net>
+ * License: Proprietary, free under certain conditions. See Documentation.
+ * Tabsize: 4
+ */
+#define F_CPU   12000000L  
+
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <util/delay.h>
+#include <avr/pgmspace.h>
+#include <string.h>
+#include "gamepad.h"
+#include "leds.h"
+#include "snes.h"
+
+#define REPORT_SIZE		8
+#define GAMEPAD_BYTES	8	/* 2 byte per snes controller * 4 controllers */
+
+/******** IO port definitions **************/
+#define SNES_LATCH_DDR	DDRC
+#define SNES_LATCH_PORT	PORTC
+#define SNES_LATCH_BIT	(1<<4)
+
+#define SNES_CLOCK_DDR	DDRC
+#define SNES_CLOCK_PORT	PORTC
+#define SNES_CLOCK_BIT	(1<<5)
+
+#define SNES_DATA_PORT	PORTC
+#define SNES_DATA_DDR	DDRC
+#define SNES_DATA_PIN	PINC
+#define SNES_DATA_BIT1	(1<<3)	/* controller 1 */
+#define SNES_DATA_BIT2	(1<<2)	/* controller 2 */
+#define SNES_DATA_BIT3	(1<<1)	/* controller 3 */
+#define SNES_DATA_BIT4	(1<<0)	/* controller 4 */
+
+/********* IO port manipulation macros **********/
+#define SNES_LATCH_LOW()	do { SNES_LATCH_PORT &= ~(SNES_LATCH_BIT); } while(0)
+#define SNES_LATCH_HIGH()	do { SNES_LATCH_PORT |= SNES_LATCH_BIT; } while(0)
+#define SNES_CLOCK_LOW()	do { SNES_CLOCK_PORT &= ~(SNES_CLOCK_BIT); } while(0)
+#define SNES_CLOCK_HIGH()	do { SNES_CLOCK_PORT |= SNES_CLOCK_BIT; } while(0)
+
+#define SNES_GET_DATA1()	(SNES_DATA_PIN & SNES_DATA_BIT1)
+#define SNES_GET_DATA2()	(SNES_DATA_PIN & SNES_DATA_BIT2)
+#define SNES_GET_DATA3()	(SNES_DATA_PIN & SNES_DATA_BIT3)
+#define SNES_GET_DATA4()	(SNES_DATA_PIN & SNES_DATA_BIT4)
+
+/*********** prototypes *************/
+static void snesInit(void);
+static void snesUpdate(void);
+static char snesChanged(void);
+static void snesBuildReport(unsigned char *reportBuffer);
+
+
+// the most recent bytes we fetched from the controller
+static unsigned char last_read_controller_bytes[GAMEPAD_BYTES];
+
+// the most recently reported bytes
+static unsigned char last_reported_controller_bytes[GAMEPAD_BYTES];
+
+// indicates if a controller is in NES mode
+static unsigned char nesMode=0;	/* Bit0: controller 1, Bit1: controller 2...*/
+
+static void snesInit(void)
+{
+	unsigned char sreg;
+	sreg = SREG;
+	cli();
+	
+	// clock and latch as output
+	SNES_LATCH_DDR |= SNES_LATCH_BIT;
+	SNES_CLOCK_DDR |= SNES_CLOCK_BIT;
+	
+	// data as input
+	SNES_DATA_DDR &= ~(SNES_DATA_BIT1 | SNES_DATA_BIT2 | SNES_DATA_BIT3 | SNES_DATA_BIT4 );
+	// enable pullup. This should prevent random toggling of pins
+	// when no controller is connected.
+	SNES_DATA_PORT |= (SNES_DATA_BIT1 | SNES_DATA_BIT2 | SNES_DATA_BIT3 | SNES_DATA_BIT4 );
+
+	// clock is normally high
+	SNES_CLOCK_PORT |= SNES_CLOCK_BIT;
+
+	// LATCH is Active HIGH
+	SNES_LATCH_PORT &= ~(SNES_LATCH_BIT);
+
+	nesMode = 0;
+	snesUpdate();
+	
+	/* Snes controller buttons are sent in this order:
+	 * 1st byte: B Y SEL START UP DOWN LEFT RIGHT 
+	 * 2nd byte: A X L R 1 1 1 1
+	 *
+	 * Nes controller buttons are sent in this order:
+	 * One byte: A B SEL START UP DOWN LEFT RIGHT
+	 *
+	 * When an additional byte is read from a NES controller,
+	 * all bits are 0. Because the data signal is active low,
+	 * this corresponds to pressed buttons. When we read
+	 * from the controller for the first time, detect NES
+	 * controllers by checking those 4 bits.
+	 **/
+	if (last_read_controller_bytes[1]==0xFF)
+		nesMode |= 1;
+	if (last_read_controller_bytes[3]==0xFF)
+		nesMode |= 2;
+
+	if (last_read_controller_bytes[5]==0xFF)
+		nesMode |= 4;
+		
+	/* The last controllers are always in NES mode. But
+	 * it is accessible only of the third is in NES mode
+	 * too. */
+	if (last_read_controller_bytes[7]==0xFF)
+		nesMode |= 8;
+
+	SREG = sreg;
+}
+
+
+/*
+ *
+       Clock Cycle     Button Reported
+        ===========     ===============
+        1               B
+        2               Y
+        3               Select
+        4               Start
+        5               Up on joypad
+        6               Down on joypad
+        7               Left on joypad
+        8               Right on joypad
+        9               A
+        10              X
+        11              L
+        12              R
+        13              none (always high)
+        14              none (always high)
+        15              none (always high)
+        16              none (always high)
+ *
+ */
+
+static void snesUpdate(void)
+{
+	int i;
+	unsigned char tmp1=0;
+	unsigned char tmp2=0;
+	unsigned char tmp3=0;
+	unsigned char tmp4=0;
+
+	SNES_LATCH_HIGH();
+	_delay_us(12);
+	SNES_LATCH_LOW();
+
+	for (i=0; i<8; i++)
+	{
+		_delay_us(6);
+		SNES_CLOCK_LOW();
+		
+		tmp1 <<= 1;	
+		tmp2 <<= 1;	
+		tmp3 <<= 1;	
+		tmp4 <<= 1;
+		if (!SNES_GET_DATA1()) { tmp1 |= 1; }
+		if (!SNES_GET_DATA2()) { tmp2 |= 1; }
+		if (!SNES_GET_DATA3()) { tmp3 |= 1; }
+		if (!SNES_GET_DATA4()) { tmp4 |= 1; }
+
+		_delay_us(6);
+		
+		SNES_CLOCK_HIGH();
+	}
+	last_read_controller_bytes[0] = tmp1;
+	last_read_controller_bytes[2] = tmp2;
+	last_read_controller_bytes[4] = tmp3;
+	last_read_controller_bytes[6] = tmp4;
+
+	for (i=0; i<8; i++)
+	{
+		_delay_us(6);
+
+		SNES_CLOCK_LOW();
+
+		// notice that this is different from above. We
+		// want the bits to be in reverse-order
+		tmp1 >>= 1;	
+		tmp2 >>= 1;	
+		tmp3 >>= 1;	
+		tmp4 >>= 1;	
+		if (!SNES_GET_DATA1()) { tmp1 |= 0x80; }
+		if (!SNES_GET_DATA2()) { tmp2 |= 0x80; }
+		if (!SNES_GET_DATA3()) { tmp3 |= 0x80; }
+		if (!SNES_GET_DATA4()) { tmp4 |= 0x80; }
+		
+		_delay_us(6);
+		SNES_CLOCK_HIGH();
+	}
+	/* Force extra bits to 0 when in NES mode. Otherwise, if
+	 * we read zeros on the wire, we will have permanantly 
+	 * pressed buttons */
+	last_read_controller_bytes[1] = (nesMode & 1) ? 0x00 : tmp1;
+	last_read_controller_bytes[3] = (nesMode & 2) ? 0x00 : tmp2;
+	last_read_controller_bytes[5] = (nesMode & 4) ? 0x00 : tmp3;
+	last_read_controller_bytes[7] = (nesMode & 8) ? 0x00 : tmp4;
+
+}
+
+static char snesChanged(void)
+{
+	static int first = 1;
+	if (first) { first = 0;  return 1; }
+	
+	return memcmp(last_read_controller_bytes, 
+					last_reported_controller_bytes, GAMEPAD_BYTES);
+}
+
+static char getX(unsigned char nesByte1)
+{
+	char x = 128;
+	if (nesByte1&0x1) { x = 255; }
+	if (nesByte1&0x2) { x = 0; }
+	return x;
+}
+
+static char getY(unsigned char nesByte1)
+{
+	char y = 128;
+	if (nesByte1&0x4) { y = 255; }
+	if (nesByte1&0x8) { y = 0; }
+	return y;
+}
+
+static unsigned char snesReorderButtons(unsigned char bytes[2])
+{
+	unsigned char v;
+
+	/* pack the snes button bits, which are on two bytes, in
+	 * one single byte. */
+	v =	(bytes[0]&0x80)>>7;
+	v |= (bytes[0]&0x40)>>5;
+	v |= (bytes[0]&0x20)>>3;
+	v |= (bytes[0]&0x10)>>1;
+	v |= (bytes[1]&0x0f)<<4;
+
+	return v;
+}
+
+static void snesBuildReport(unsigned char *reportBuffer)
+{
+	/* last_read_controller_bytes[] structure:
+	 *
+	 * [0] : controller 1, 8 first bits (dpad + start + sel + y|a + b)
+	 * [1] : controller 1, 8 snes extra bits (4 lower bits are buttons)
+	 *
+	 * [2] : controller 2, 8 first bits
+	 * [3] : controller 2, 4 extra snes buttons
+	 *
+	 * [4] : controller 3, 8 first bits
+	 * [5] : controller 3, 4 extra snes buttons
+	 *
+	 * [6] : controller 4, 8 first bits
+	 * [7] : controller 4, 4 extra snes buttons
+	 */
+
+	if (reportBuffer != NULL)
+	{
+		reportBuffer[0]=getX(last_read_controller_bytes[0]);
+		reportBuffer[1]=getY(last_read_controller_bytes[0]);
+		reportBuffer[2]=getX(last_read_controller_bytes[2]);
+		reportBuffer[3]=getY(last_read_controller_bytes[2]);
+
+		reportBuffer[4] = snesReorderButtons(&last_read_controller_bytes[0]);
+		reportBuffer[5] = snesReorderButtons(&last_read_controller_bytes[2]);
+
+		if (nesMode & 0x04) {
+			// Two last controllers are in NES mode. 
+			reportBuffer[6] = last_read_controller_bytes[4];
+			reportBuffer[7] = last_read_controller_bytes[6];
+		}
+		else {
+			// Third controller is in SNES mode. Use the two
+			// last bytes for it. Sorry, no fourth controller.
+			reportBuffer[6] = last_read_controller_bytes[4];
+			reportBuffer[7] = last_read_controller_bytes[5];
+		}
+
+	}
+	memcpy(last_reported_controller_bytes, 
+			last_read_controller_bytes, 
+			GAMEPAD_BYTES);	
+}
+
+const char snes_usbHidReportDescriptor[] PROGMEM = {
+    0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
+    0x09, 0x04,                    // USAGE (Joystick)
+    0xa1, 0x01,                    // COLLECTION (Application)
+    0x09, 0x01,                    //   USAGE (Pointer)
+    0xa1, 0x00,                    //   COLLECTION (Physical)
+    0x09, 0x30,                    //     USAGE (X)
+    0x09, 0x31,                    //     USAGE (Y)
+	0x09, 0x32,					   //     USAGE (Z)
+	0x09, 0x36,					   //     USAGE (SLIDER)
+    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
+    0x26, 0xff, 0x00,              //     LOGICAL_MAXIMUM (255)
+    0x75, 0x08,                    //   REPORT_SIZE (8)
+    0x95, 0x04,                    //   REPORT_COUNT (4)
+    0x81, 0x02,                    //   INPUT (Data,Var,Abs)
+    0xc0,                          // END_COLLECTION
+
+    0x05, 0x09,                    // USAGE_PAGE (Button)
+    0x19, 1,                       //   USAGE_MINIMUM (Button 1)
+    0x29, 32,                       //   USAGE_MAXIMUM (Button 32)
+    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
+    0x25, 0x01,                    //   LOGICAL_MAXIMUM (1)
+    0x75, 1,                       // REPORT_SIZE (1)
+    0x95, 32,                       // REPORT_COUNT (32)
+    0x81, 0x02,                    // INPUT (Data,Var,Abs)
+
+    0xc0                           // END_COLLECTION
+};
+
+Gamepad SnesGamepad = {
+	report_size: 		REPORT_SIZE,
+	reportDescriptorSize:	sizeof(snes_usbHidReportDescriptor),
+	init: 			snesInit,
+	update: 		snesUpdate,
+	changed:		snesChanged,
+	buildReport:		snesBuildReport
+};
+
+Gamepad *snesGetGamepad(void)
+{
+	SnesGamepad.reportDescriptor = (void*)snes_usbHidReportDescriptor;
+
+	return &SnesGamepad;
+}
+

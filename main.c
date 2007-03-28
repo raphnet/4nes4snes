@@ -70,7 +70,7 @@ static void hardwareInit(void)
 
 }
 
-static uchar    reportBuffer[18];    /* buffer for HID reports */
+static uchar    reportBuffer[12];    /* buffer for HID reports */
 
 
 
@@ -80,6 +80,7 @@ static uchar    reportBuffer[18];    /* buffer for HID reports */
 
 static uchar    idleRate;           /* in 4 ms units */
 
+static uchar reportPos=0;
 
 uchar	usbFunctionSetup(uchar data[8])
 {
@@ -89,8 +90,10 @@ uchar	usbFunctionSetup(uchar data[8])
 	if((rq->bmRequestType & USBRQ_TYPE_MASK) == USBRQ_TYPE_CLASS){    /* class request type */
 		if(rq->bRequest == USBRQ_HID_GET_REPORT){  /* wValue: ReportType (highbyte), ReportID (lowbyte) */
 			/* we only have one report type, so don't look at wValue */
-			curGamepad->buildReport(reportBuffer);
-			return curGamepad->report_size;
+			reportPos=0;
+			//curGamepad->buildReport(reportBuffer);
+			//return curGamepad->report_size;
+			return 0xff;
 		}else if(rq->bRequest == USBRQ_HID_GET_IDLE){
 			usbMsgPtr = &idleRate;
 			return 1;
@@ -101,6 +104,17 @@ uchar	usbFunctionSetup(uchar data[8])
 	/* no vendor specific requests implemented */
 	}
 	return 0;
+}
+
+uchar usbFunctionRead(uchar *data, uchar len)
+{
+	char i,c;
+	for (c=0; reportPos < sizeof(reportBuffer) && c<len; c++, reportPos++)
+	{
+		*data = reportBuffer[reportPos];
+		i++;
+	}
+	return c;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -204,11 +218,35 @@ int main(void)
 		{
 			if (usbInterruptIsReady())
 			{ 	
+				int reported=0;
+				unsigned char empty=0;
 
-			must_report = 0;
+				curGamepad->buildReport(reportBuffer);
+				reportPos = 0;
 
-			curGamepad->buildReport(reportBuffer);
-			usbSetInterrupt(reportBuffer, curGamepad->report_size);
+				while (reported < curGamepad->report_size)
+				{
+					int cur_report_siz;
+
+					
+					if (curGamepad->report_size - reported >= 8)
+						cur_report_siz = 8;
+					else
+						cur_report_siz = curGamepad->report_size - reported;
+
+					usbSetInterrupt(&reportBuffer[reported], cur_report_siz);
+
+					while (!usbInterruptIsReady())
+					{
+						usbPoll();
+						wdt_reset();
+					}
+					
+					reported += cur_report_siz;
+				}
+
+				usbSetInterrupt(&empty, 0);				
+				must_report = 0;
 			}
 		}
 	}

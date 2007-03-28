@@ -16,7 +16,7 @@
 #include "leds.h"
 #include "snes.h"
 
-#define REPORT_SIZE		8
+#define REPORT_SIZE		12
 #define GAMEPAD_BYTES	8	/* 2 byte per snes controller * 4 controllers */
 
 /******** IO port definitions **************/
@@ -103,15 +103,13 @@ static void snesInit(void)
 	 **/
 	if (last_read_controller_bytes[1]==0xFF)
 		nesMode |= 1;
+
 	if (last_read_controller_bytes[3]==0xFF)
 		nesMode |= 2;
 
 	if (last_read_controller_bytes[5]==0xFF)
 		nesMode |= 4;
-		
-	/* The last controllers are always in NES mode. But
-	 * it is accessible only of the third is in NES mode
-	 * too. */
+
 	if (last_read_controller_bytes[7]==0xFF)
 		nesMode |= 8;
 
@@ -270,21 +268,31 @@ static void snesBuildReport(unsigned char *reportBuffer)
 		reportBuffer[1]=getY(last_read_controller_bytes[0]);
 		reportBuffer[2]=getX(last_read_controller_bytes[2]);
 		reportBuffer[3]=getY(last_read_controller_bytes[2]);
+		reportBuffer[4]=getX(last_read_controller_bytes[4]);
+		reportBuffer[5]=getY(last_read_controller_bytes[4]);
+		reportBuffer[6]=getX(last_read_controller_bytes[6]);
+		reportBuffer[7]=getY(last_read_controller_bytes[6]);
 
-		reportBuffer[4] = snesReorderButtons(&last_read_controller_bytes[0]);
-		reportBuffer[5] = snesReorderButtons(&last_read_controller_bytes[2]);
+		if (nesMode & 0x01)
+			reportBuffer[8] = last_read_controller_bytes[0] & 0xf0;
+		else
+			reportBuffer[8] = snesReorderButtons(&last_read_controller_bytes[0]);
 
-		if (nesMode & 0x04) {
-			// Two last controllers are in NES mode. 
-			reportBuffer[6] = last_read_controller_bytes[4];
-			reportBuffer[7] = last_read_controller_bytes[6];
-		}
-		else {
-			// Third controller is in SNES mode. Use the two
-			// last bytes for it. Sorry, no fourth controller.
-			reportBuffer[6] = last_read_controller_bytes[4];
-			reportBuffer[7] = last_read_controller_bytes[5];
-		}
+		if (nesMode & 0x02)
+			reportBuffer[9] = last_read_controller_bytes[2] & 0xf0;
+		else
+			reportBuffer[9] = snesReorderButtons(&last_read_controller_bytes[2]);
+
+		if (nesMode & 0x04)
+			reportBuffer[10] = last_read_controller_bytes[4] & 0xf0;
+		else
+			reportBuffer[10] = snesReorderButtons(&last_read_controller_bytes[4]);
+
+		if (nesMode & 0x08)
+			reportBuffer[11] = last_read_controller_bytes[6] & 0xf0;
+		else
+			reportBuffer[11] = snesReorderButtons(&last_read_controller_bytes[6]);
+
 
 	}
 	memcpy(last_reported_controller_bytes, 
@@ -298,14 +306,20 @@ const char snes_usbHidReportDescriptor[] PROGMEM = {
     0xa1, 0x01,                    // COLLECTION (Application)
     0x09, 0x01,                    //   USAGE (Pointer)
     0xa1, 0x00,                    //   COLLECTION (Physical)
-    0x09, 0x30,                    //     USAGE (X)
+    
+	0x09, 0x30,                    //     USAGE (X)
     0x09, 0x31,                    //     USAGE (Y)
 	0x09, 0x32,					   //     USAGE (Z)
-	0x09, 0x36,					   //     USAGE (SLIDER)
+	0x09, 0x33,					   //	  USAGE (Rx) 
+	0x09, 0x34,					   //	  USAGE (Ry)
+	0x09, 0x35,					   //	  USAGE (Rz)
+	0x09, 0x36,					   //     USAGE (Slider)
+	0x09, 0x37,					   //	  USAGE (Dial)
+
     0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
     0x26, 0xff, 0x00,              //     LOGICAL_MAXIMUM (255)
     0x75, 0x08,                    //   REPORT_SIZE (8)
-    0x95, 0x04,                    //   REPORT_COUNT (4)
+    0x95, 0x08,                    //   REPORT_COUNT (8)
     0x81, 0x02,                    //   INPUT (Data,Var,Abs)
     0xc0,                          // END_COLLECTION
 

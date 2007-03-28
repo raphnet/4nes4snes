@@ -1,8 +1,8 @@
-This is 4nes3snes Readme.txt file. 
+This is 4nes4snes Readme.txt file. 
 
 Table of contents:
 
-1) What is 4nes3snes?
+1) What is 4nes4snes?
 2) USB Implementation
 3) Compilation and installation
 4) License
@@ -10,30 +10,22 @@ Table of contents:
 6) Where do I get more information and updates?
 
 
-1) What is 4nes3snes?
+1) What is 4nes4snes?
    --------------------
-	4nes3snes if a firmware for Atmel ATmega8 which 
-	allows one to connect NES and SNES controllers to 
-	a PC using a single circuit. Here are the possible
-	combinations:
-	- 4 NES controllers
-	- 3 SNES controllers
-	- 2 SNES controllers + 2 NES controllers
-	- 1 SNES controller + 3 NES controllers
+	4nes4snes if a firmware for Atmel ATmega8 which 
+	allows one to connect up to 4 NES and/or SNES 
+	controllers to a PC using a single circuit. 
 
 	The device connects to an USB port and appears to the
-	PC as standard HID joystick with 4 axes and 32 buttons. 
-	The two first controllers get their D-PADs mapped to a
-	pair of axes. The remaining controllers D-PADs
-	are mapped to ordinary buttons.
+	PC as standard HID joystick with 8 axes and 32 buttons. 
 
 
 2) USB Implementation
    ------------------
-	4nes3snes uses the software-only usb driver from Objective Development.
+	4nes4snes uses the software-only usb driver from Objective Development.
 	See http://www.obdev.at/products/avrusb/index.html
 
-	A good portion of 4nes3snes is based on Objective Development's
+	A good portion of 4nes4snes is based on Objective Development's
 	HIDKeys example.
 
 
@@ -54,7 +46,7 @@ Table of contents:
 
 4) License
    -------
-	4nes3snes is released under Objective Development's extended GPL
+	4nes4snes is released under Objective Development's extended GPL
 	license. See License.txt
 
 
@@ -67,8 +59,8 @@ Table of contents:
 
 6) Where do I get more information and updates?
    --------------------------------------------
-	Visit 4nes3snes page:
-	http://www.raphnet.net/electronique/4nes_3snes/index_en.php
+	Visit 4nes4snes page:
+	http://www.raphnet.net/electronique/4nes4snes/index_en.php
 	you may also contact me by email:
 	Raphael Assenat <raph@raphnet.net>
 	

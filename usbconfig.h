@@ -5,7 +5,7 @@
  * Tabsize: 4
  * Copyright: (c) 2005 by OBJECTIVE DEVELOPMENT Software GmbH
  * License: Proprietary, free under certain conditions. See Documentation.
- * This Revision: $Id: usbconfig.h,v 1.3 2007-03-28 02:27:00 raph Exp $
+ * This Revision: $Id: usbconfig.h,v 1.4 2007-03-28 02:29:23 raph Exp $
  */
 
 #ifndef __usbconfig_h_included__
@@ -115,9 +115,10 @@ must be adapted to your hardware.
  * obdev's free shared VID/PID pair. See the file USBID-License.txt for
  * details. 
  */
-#define USB_CFG_DEVICE_NAME     '4',' ','A','x','e','s',',',' ',  \
-								'3','2',' ','B','u','t','t','o','n','s' 
-#define USB_CFG_DEVICE_NAME_LEN 18
+#define USB_CFG_DEVICE_NAME     'R','a','p','n','e','t','.','n','e','t', \
+								'\'', 's', ' ', '8',' ','A','x','e','s', \
+								',',' ', '3','2',' ','B','u','t','t','o','n','s' 
+#define USB_CFG_DEVICE_NAME_LEN 31
 /* Same as above for the device name. If you don't want a device name, undefine
  * the macros. See the file USBID-License.txt before you assign a name.
  */

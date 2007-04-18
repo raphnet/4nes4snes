@@ -25,6 +25,9 @@
 #include "leds.h"
 #include "devdesc.h"
 
+/* The maximum number of independent reports that are supported. */
+#define MAX_REPORTS 8	
+
 int usbCfgSerialNumberStringDescriptor[] PROGMEM = {
  	USB_STRING_DESCRIPTOR_HEADER(USB_CFG_SERIAL_NUMBER_LENGTH),
  	'1', '0', '0', '0'
@@ -78,76 +81,61 @@ static uchar    reportBuffer[12];    /* buffer for HID reports */
 /* ----------------------------- USB interface ----------------------------- */
 /* ------------------------------------------------------------------------- */
 
-static uchar    idleRate;           /* in 4 ms units */
+static uchar    idleRates[MAX_REPORTS];           /* in 4 ms units */
 
 static uchar reportPos=0;
 
 uchar	usbFunctionSetup(uchar data[8])
 {
 	usbRequest_t    *rq = (void *)data;
+	int i;
 
 	usbMsgPtr = reportBuffer;
-	if((rq->bmRequestType & USBRQ_TYPE_MASK) == USBRQ_TYPE_CLASS){    /* class request type */
-		if(rq->bRequest == USBRQ_HID_GET_REPORT){  /* wValue: ReportType (highbyte), ReportID (lowbyte) */
-			/* we only have one report type, so don't look at wValue */
-			reportPos=0;
-			//curGamepad->buildReport(reportBuffer);
-			//return curGamepad->report_size;
-			return 0xff;
-		}else if(rq->bRequest == USBRQ_HID_GET_IDLE){
-			usbMsgPtr = &idleRate;
-			return 1;
-		}else if(rq->bRequest == USBRQ_HID_SET_IDLE){
-			idleRate = rq->wValue.bytes[1];
+
+	/* class request type */
+	if((rq->bmRequestType & USBRQ_TYPE_MASK) == USBRQ_TYPE_CLASS){    
+		switch (rq->bRequest)
+		{
+			case USBRQ_HID_GET_REPORT:
+				/* wValue: ReportType (highbyte), ReportID (lowbyte) */
+				reportPos=0;
+				return curGamepad->buildReport(reportBuffer, rq->wValue.bytes[0]);
+			
+			case USBRQ_HID_GET_IDLE:
+				if (rq->wValue.bytes[0] > 0 && rq->wValue.bytes[0] <= MAX_REPORTS) {
+					usbMsgPtr = idleRates + (rq->wValue.bytes[0] - 1);
+					return 1;
+				}
+				break;			
+			
+			case USBRQ_HID_SET_IDLE:
+				if (rq->wValue.bytes[0]==0) {
+					for (i=0; i<MAX_REPORTS; i++)
+						idleRates[i] = rq->wValue.bytes[1];	
+				}
+				else {
+					if (rq->wValue.bytes[0] > 0 && rq->wValue.bytes[0] <= MAX_REPORTS) {
+						idleRates[rq->wValue.bytes[0]-1] = rq->wValue.bytes[1];
+					}
+				}
+				break;
 		}
-	}else{
-	/* no vendor specific requests implemented */
+	} else {
+		/* no vendor specific requests implemented */
 	}
 	return 0;
-}
-
-uchar usbFunctionRead(uchar *data, uchar len)
-{
-	char i,c;
-	for (c=0; reportPos < sizeof(reportBuffer) && c<len; c++, reportPos++)
-	{
-		*data = reportBuffer[reportPos];
-		i++;
-	}
-	return c;
 }
 
 /* ------------------------------------------------------------------------- */
 
 int main(void)
 {
-	char must_report = 0, first_run = 1;
-	uchar   idleCounter = 0;
-//	int run_mode;
+	char must_report = 0;	/* bitfield */
+	uchar   idleCounters[MAX_REPORTS];
+	int i;
 
-	// led pin as output
-//	DDRD |= 0x20;
+	memset(idleCounters, 0, MAX_REPORTS);
 
-#if 0
-	/* Dip switch common: DB0, outputs: DB1 and DB2 */
-	DDRB |= 0x01;
-	DDRB &= ~0x06; 
-	
-	PORTB |= 0x06; /* enable pull up on DB1 and DB2 */
-	PORTB &= ~0x01; /* Set DB0 to low */
-
-	_delay_ms(10); /* let pins settle */
-	run_mode = (PINB & 0x06)>>1;
-
-	switch(run_mode)
-	{
-		default:
-		case 3:
-			curGamepad = snesGetGamepad();
-			break;
-	}
-#endif
-	
 	curGamepad = snesGetGamepad();
 
 	// configure report descriptor according to
@@ -173,6 +161,9 @@ int main(void)
 	curGamepad->init();
 	odDebugInit();
 	usbInit();
+
+	curGamepad->update();
+
 	sei();
 	DBG1(0x00, 0, 0);
 
@@ -183,71 +174,66 @@ int main(void)
 		// this must be called at each 50 ms or less
 		usbPoll();
 
-		if (first_run) {
-			curGamepad->update();
-			first_run = 0;
-		}
-
-		if(TIFR & (1<<TOV0)){   /* 22 ms timer */
-			TIFR = 1<<TOV0;
-			if(idleRate != 0){
-				if(idleCounter > 4){
-					idleCounter -= 5;   /* 22 ms in units of 4 ms */
-				}else{
-					idleCounter = idleRate;
-					must_report = 1;
-				}
-			}
-		}
-
+		/* Read the controllers at 60hz */
 		if (TIFR & (1<<OCF2))
 		{
 			TIFR = 1<<OCF2;
-			if (!must_report)
-			{
-				curGamepad->update();
-				if (curGamepad->changed()) {
-					must_report = 1;
+				
+			curGamepad->update();
+
+			/* Check what will have to be reported */
+			for (i=0; i<curGamepad->num_reports; i++) {
+				if (curGamepad->changed(i+1)) {
+					must_report |= (1<<i);
 				}
 			}
-
 		}
-		
+
+		/* Try to report at the granularity requested by
+		 * the host. */
+		if (TIFR & (1<<TOV0)) {   /* 22 ms timer */
+			TIFR = 1<<TOV0;
+
+			for (i=0; i<curGamepad->num_reports; i++)
+			{
+				// 0 means 
+				if(idleRates[i] != 0){
+					if (idleCounters[i] > 4) {
+						idleCounters[i] -= 5;   /* 22 ms in units of 4 ms */
+					} else {
+						// reset the counter and schedule a report for this
+						idleCounters[i] = idleRates[i];
+						must_report |= (1<<i);
+					}
+				}
+			}
+		}
+
+	
 			
 		if(must_report)
 		{
-			if (usbInterruptIsReady())
-			{ 	
-				int reported=0;
-				unsigned char empty=0;
+			for (i = 0; i < curGamepad->num_reports; i++)
+			{
+				if ((must_report & (1<<i)) == 0) 
+					continue;
 
-				curGamepad->buildReport(reportBuffer);
-				reportPos = 0;
+				if (usbInterruptIsReady())
+				{ 	
+					char len;
 
-				while (reported < curGamepad->report_size)
-				{
-					int cur_report_siz;
-
-					
-					if (curGamepad->report_size - reported >= 8)
-						cur_report_siz = 8;
-					else
-						cur_report_siz = curGamepad->report_size - reported;
-
-					usbSetInterrupt(&reportBuffer[reported], cur_report_siz);
+					len = curGamepad->buildReport(reportBuffer, i+1);
+					usbSetInterrupt(reportBuffer, len);
 
 					while (!usbInterruptIsReady())
 					{
 						usbPoll();
 						wdt_reset();
 					}
-					
-					reported += cur_report_siz;
 				}
-
-				usbSetInterrupt(&empty, 0);				
-				must_report = 0;
 			}
+
+			must_report = 0;
 		}
 	}
 	return 0;

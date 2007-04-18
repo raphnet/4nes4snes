@@ -5,7 +5,7 @@
  * Tabsize: 4
  * Copyright: (c) 2005 by OBJECTIVE DEVELOPMENT Software GmbH
  * License: Proprietary, free under certain conditions. See Documentation.
- * This Revision: $Id: usbconfig.h,v 1.4 2007-03-28 02:29:23 raph Exp $
+ * This Revision: $Id: usbconfig.h,v 1.5 2007-04-18 23:58:01 raph Exp $
  */
 
 #ifndef __usbconfig_h_included__
@@ -55,7 +55,7 @@ must be adapted to your hardware.
 /* Define this to 1 if the device has its own power supply. Set it to 0 if the
  * device is powered from the USB bus.
  */
-#define USB_CFG_MAX_BUS_POWER           100
+#define USB_CFG_MAX_BUS_POWER           120
 /* Set this variable to the maximum USB bus power consumption of your device.
  * The value is in milliamperes. [It will be divided by two since USB
  * communicates power requirements in units of 2 mA.]
@@ -74,7 +74,7 @@ must be adapted to your hardware.
  * transfers. Set it to 0 if you don't need it and want to save a couple of
  * bytes.
  */
-#define USB_CFG_IMPLEMENT_FN_READ       1
+#define USB_CFG_IMPLEMENT_FN_READ       0
 /* Set this to 1 if you need to send control replies which are generated
  * "on the fly" when usbFunctionRead() is called. If you only want to send
  * data from a static buffer, set it to 0 and return the data from
@@ -95,14 +95,14 @@ must be adapted to your hardware.
  * own Vendor ID, define it here. Otherwise you use obdev's free shared
  * VID/PID pair. Be sure to read USBID-License.txt for rules!
  */
-#define  USB_CFG_DEVICE_ID       0x9c, 0x0a
+#define  USB_CFG_DEVICE_ID       0x9d, 0x0a
 /* This is the ID of the product, low byte first. It is interpreted in the
  * scope of the vendor ID. If you have registered your own VID with usb.org
  * or if you have licensed a PID from somebody else, define it here. Otherwise
  * you use obdev's free shared VID/PID pair. Be sure to read the rules in
  * USBID-License.txt!
  */
-#define USB_CFG_DEVICE_VERSION  0x00, 0x01
+#define USB_CFG_DEVICE_VERSION  0x01, 0x01
 /* Version number of the device: Minor number first, then major number.
  */
 #define USB_CFG_VENDOR_NAME     'r', 'a', 'p', 'h', 'n', 'e', 't', '.', 'n', 'e', 't'
@@ -115,10 +115,8 @@ must be adapted to your hardware.
  * obdev's free shared VID/PID pair. See the file USBID-License.txt for
  * details. 
  */
-#define USB_CFG_DEVICE_NAME     'R','a','p','n','e','t','.','n','e','t', \
-								'\'', 's', ' ', '8',' ','A','x','e','s', \
-								',',' ', '3','2',' ','B','u','t','t','o','n','s' 
-#define USB_CFG_DEVICE_NAME_LEN 31
+#define USB_CFG_DEVICE_NAME    '4','n','e','s','4','s','n','e','s'
+#define USB_CFG_DEVICE_NAME_LEN 9
 /* Same as above for the device name. If you don't want a device name, undefine
  * the macros. See the file USBID-License.txt before you assign a name.
  */

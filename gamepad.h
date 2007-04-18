@@ -3,7 +3,7 @@
 
 typedef struct {
 	// size of reports built by buildReport
-	int report_size;
+	char num_reports;
 
 	int reportDescriptorSize;
 	void *reportDescriptor; // must be in flash
@@ -13,8 +13,13 @@ typedef struct {
 	
 	void (*init)(void);
 	void (*update)(void);
-	char (*changed)(void);
-	void (*buildReport)(unsigned char *buf);
+
+	char (*changed)(char id);
+	/**
+	 * \param id Controller id (starting at 1 to match report IDs)
+	 * \return The number of bytes written to buf.
+	 * */
+	char (*buildReport)(unsigned char *buf, char id);
 } Gamepad;
 
 #endif // _gamepad_h__

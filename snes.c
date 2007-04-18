@@ -16,7 +16,6 @@
 #include "leds.h"
 #include "snes.h"
 
-#define REPORT_SIZE		12
 #define GAMEPAD_BYTES	8	/* 2 byte per snes controller * 4 controllers */
 
 /******** IO port definitions **************/
@@ -50,8 +49,8 @@
 /*********** prototypes *************/
 static void snesInit(void);
 static void snesUpdate(void);
-static char snesChanged(void);
-static void snesBuildReport(unsigned char *reportBuffer);
+static char snesChanged(char report_id);
+static char snesBuildReport(unsigned char *reportBuffer, char report_id);
 
 
 // the most recent bytes we fetched from the controller
@@ -205,13 +204,13 @@ static void snesUpdate(void)
 
 }
 
-static char snesChanged(void)
+static char snesChanged(char report_id)
 {
-	static int first = 1;
-	if (first) { first = 0;  return 1; }
-	
-	return memcmp(last_read_controller_bytes, 
-					last_reported_controller_bytes, GAMEPAD_BYTES);
+	report_id--; // first report is 1
+
+	return memcmp(	&last_read_controller_bytes[report_id<<1], 
+					&last_reported_controller_bytes[report_id<<1], 
+					2);
 }
 
 static char getX(unsigned char nesByte1)
@@ -245,8 +244,13 @@ static unsigned char snesReorderButtons(unsigned char bytes[2])
 	return v;
 }
 
-static void snesBuildReport(unsigned char *reportBuffer)
+static char snesBuildReport(unsigned char *reportBuffer, char id)
 {
+	char idx;
+
+	if (id < 0 || id > 4)
+		return 0;
+
 	/* last_read_controller_bytes[] structure:
 	 *
 	 * [0] : controller 1, 8 first bits (dpad + start + sel + y|a + b)
@@ -262,86 +266,139 @@ static void snesBuildReport(unsigned char *reportBuffer)
 	 * [7] : controller 4, 4 extra snes buttons
 	 */
 
+	idx = id - 1;
 	if (reportBuffer != NULL)
 	{
-		reportBuffer[0]=getX(last_read_controller_bytes[0]);
-		reportBuffer[1]=getY(last_read_controller_bytes[0]);
-		reportBuffer[2]=getX(last_read_controller_bytes[2]);
-		reportBuffer[3]=getY(last_read_controller_bytes[2]);
-		reportBuffer[4]=getX(last_read_controller_bytes[4]);
-		reportBuffer[5]=getY(last_read_controller_bytes[4]);
-		reportBuffer[6]=getX(last_read_controller_bytes[6]);
-		reportBuffer[7]=getY(last_read_controller_bytes[6]);
+		reportBuffer[0]=id;
+		reportBuffer[1]=getX(last_read_controller_bytes[idx*2]);
+		reportBuffer[2]=getY(last_read_controller_bytes[idx*2]);
 
-		if (nesMode & 0x01)
-			reportBuffer[8] = last_read_controller_bytes[0] & 0xf0;
+		if (nesMode & (0x01<<idx))
+			reportBuffer[3] = last_read_controller_bytes[idx*2] & 0xf0;
 		else
-			reportBuffer[8] = snesReorderButtons(&last_read_controller_bytes[0]);
-
-		if (nesMode & 0x02)
-			reportBuffer[9] = last_read_controller_bytes[2] & 0xf0;
-		else
-			reportBuffer[9] = snesReorderButtons(&last_read_controller_bytes[2]);
-
-		if (nesMode & 0x04)
-			reportBuffer[10] = last_read_controller_bytes[4] & 0xf0;
-		else
-			reportBuffer[10] = snesReorderButtons(&last_read_controller_bytes[4]);
-
-		if (nesMode & 0x08)
-			reportBuffer[11] = last_read_controller_bytes[6] & 0xf0;
-		else
-			reportBuffer[11] = snesReorderButtons(&last_read_controller_bytes[6]);
-
-
+			reportBuffer[3] = snesReorderButtons(&last_read_controller_bytes[idx*2]);
 	}
-	memcpy(last_reported_controller_bytes, 
-			last_read_controller_bytes, 
-			GAMEPAD_BYTES);	
+
+	memcpy(&last_reported_controller_bytes[idx*2], 
+			&last_read_controller_bytes[idx*2], 
+			2);
+
+	return 4;
 }
 
 const char snes_usbHidReportDescriptor[] PROGMEM = {
-    0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
-    0x09, 0x04,                    // USAGE (Joystick)
-    0xa1, 0x01,                    // COLLECTION (Application)
-    0x09, 0x01,                    //   USAGE (Pointer)
-    0xa1, 0x00,                    //   COLLECTION (Physical)
-    
-	0x09, 0x30,                    //     USAGE (X)
-    0x09, 0x31,                    //     USAGE (Y)
-	0x09, 0x32,					   //     USAGE (Z)
-	0x09, 0x33,					   //	  USAGE (Rx) 
-	0x09, 0x34,					   //	  USAGE (Ry)
-	0x09, 0x35,					   //	  USAGE (Rz)
-	0x09, 0x36,					   //     USAGE (Slider)
-	0x09, 0x37,					   //	  USAGE (Dial)
 
-    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
-    0x26, 0xff, 0x00,              //     LOGICAL_MAXIMUM (255)
-    0x75, 0x08,                    //   REPORT_SIZE (8)
-    0x95, 0x08,                    //   REPORT_COUNT (8)
-    0x81, 0x02,                    //   INPUT (Data,Var,Abs)
-    0xc0,                          // END_COLLECTION
+	/* Controller and report_id 1 */
+    0x05, 0x01,			// USAGE_PAGE (Generic Desktop)
+    0x09, 0x04,			// USAGE (Joystick)
+    0xa1, 0x01,			//	COLLECTION (Application)
+    0x09, 0x01,			//		USAGE (Pointer)
+    0xa1, 0x00,			//		COLLECTION (Physical)
+	0x85, 0x01,			//			REPORT_ID (1)
+	0x09, 0x30,			//			USAGE (X)
+    0x09, 0x31,			//			USAGE (Y)
+    0x15, 0x00,			//			LOGICAL_MINIMUM (0)
+    0x26, 0xff, 0x00,	//			LOGICAL_MAXIMUM (255)
+    0x75, 0x08,			//			REPORT_SIZE (8)
+    0x95, 0x02,			//			REPORT_COUNT (2)
+    0x81, 0x02,			//			INPUT (Data,Var,Abs)
 
-    0x05, 0x09,                    // USAGE_PAGE (Button)
-    0x19, 1,                       //   USAGE_MINIMUM (Button 1)
-    0x29, 32,                       //   USAGE_MAXIMUM (Button 32)
-    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
-    0x25, 0x01,                    //   LOGICAL_MAXIMUM (1)
-    0x75, 1,                       // REPORT_SIZE (1)
-    0x95, 32,                       // REPORT_COUNT (32)
-    0x81, 0x02,                    // INPUT (Data,Var,Abs)
+    0x05, 0x09,			//			USAGE_PAGE (Button)
+    0x19, 1,			//   		USAGE_MINIMUM (Button 1)
+    0x29, 8,			//   		USAGE_MAXIMUM (Button 8)
+    0x15, 0x00,			//   		LOGICAL_MINIMUM (0)
+    0x25, 0x01,			//   		LOGICAL_MAXIMUM (1)
+    0x75, 1,			// 			REPORT_SIZE (1)
+    0x95, 8,			//			REPORT_COUNT (8)
+    0x81, 0x02,			//			INPUT (Data,Var,Abs)
+	0xc0,				//		END_COLLECTION
+    0xc0,				// END_COLLECTION
 
-    0xc0                           // END_COLLECTION
+	/* Controller and report_id 2 */
+    0x05, 0x01,			// USAGE_PAGE (Generic Desktop)
+    0x09, 0x04,			// USAGE (Joystick)
+    0xa1, 0x01,			//	COLLECTION (Application)
+    0x09, 0x01,			//		USAGE (Pointer)
+    0xa1, 0x00,			//		COLLECTION (Physical)
+	0x85, 0x02,			//			REPORT_ID (2)
+	0x09, 0x30,			//			USAGE (X)
+    0x09, 0x31,			//			USAGE (Y)
+    0x15, 0x00,			//			LOGICAL_MINIMUM (0)
+    0x26, 0xff, 0x00,	//			LOGICAL_MAXIMUM (255)
+    0x75, 0x08,			//			REPORT_SIZE (8)
+    0x95, 0x02,			//			REPORT_COUNT (2)
+    0x81, 0x02,			//			INPUT (Data,Var,Abs)
+    0x05, 0x09,			//			USAGE_PAGE (Button)
+    0x19, 1,			//   		USAGE_MINIMUM (Button 1)
+    0x29, 8,			//   		USAGE_MAXIMUM (Button 8)
+    0x15, 0x00,			//   		LOGICAL_MINIMUM (0)
+    0x25, 0x01,			//   		LOGICAL_MAXIMUM (1)
+    0x75, 1,			// 			REPORT_SIZE (1)
+    0x95, 8,			//			REPORT_COUNT (8)
+    0x81, 0x02,			//			INPUT (Data,Var,Abs)
+	0xc0,				//		END_COLLECTION
+    0xc0,				// END_COLLECTION
+
+	/* Controller and report_id 3 */
+    0x05, 0x01,			// USAGE_PAGE (Generic Desktop)
+    0x09, 0x04,			// USAGE (Joystick)
+    0xa1, 0x01,			//	COLLECTION (Application)
+    0x09, 0x01,			//		USAGE (Pointer)
+    0xa1, 0x00,			//		COLLECTION (Physical)
+	0x85, 0x03,			//			REPORT_ID (3)
+	0x09, 0x30,			//			USAGE (X)
+    0x09, 0x31,			//			USAGE (Y)
+    0x15, 0x00,			//			LOGICAL_MINIMUM (0)
+    0x26, 0xff, 0x00,	//			LOGICAL_MAXIMUM (255)
+    0x75, 0x08,			//			REPORT_SIZE (8)
+    0x95, 0x02,			//			REPORT_COUNT (2)
+    0x81, 0x02,			//			INPUT (Data,Var,Abs)
+    0x05, 0x09,			//			USAGE_PAGE (Button)
+    0x19, 1,			//   		USAGE_MINIMUM (Button 1)
+    0x29, 8,			//   		USAGE_MAXIMUM (Button 8)
+    0x15, 0x00,			//   		LOGICAL_MINIMUM (0)
+    0x25, 0x01,			//   		LOGICAL_MAXIMUM (1)
+    0x75, 1,			// 			REPORT_SIZE (1)
+    0x95, 8,			//			REPORT_COUNT (8)
+    0x81, 0x02,			//			INPUT (Data,Var,Abs)
+	0xc0,				//		END_COLLECTION
+    0xc0,				// END_COLLECTION
+
+	/* Controller and report_id 4 */
+    0x05, 0x01,			// USAGE_PAGE (Generic Desktop)
+    0x09, 0x04,			// USAGE (Joystick)
+    0xa1, 0x01,			//	COLLECTION (Application)
+    0x09, 0x01,			//		USAGE (Pointer)
+    0xa1, 0x00,			//		COLLECTION (Physical)
+	0x85, 0x04,			//			REPORT_ID (4)
+	0x09, 0x30,			//			USAGE (X)
+    0x09, 0x31,			//			USAGE (Y)
+    0x15, 0x00,			//			LOGICAL_MINIMUM (0)
+    0x26, 0xff, 0x00,	//			LOGICAL_MAXIMUM (255)
+    0x75, 0x08,			//			REPORT_SIZE (8)
+    0x95, 0x02,			//			REPORT_COUNT (2)
+    0x81, 0x02,			//			INPUT (Data,Var,Abs)
+    0x05, 0x09,			//			USAGE_PAGE (Button)
+    0x19, 1,			//   		USAGE_MINIMUM (Button 1)
+    0x29, 8,			//   		USAGE_MAXIMUM (Button 8)
+    0x15, 0x00,			//   		LOGICAL_MINIMUM (0)
+    0x25, 0x01,			//   		LOGICAL_MAXIMUM (1)
+    0x75, 1,			// 			REPORT_SIZE (1)
+    0x95, 8,			//			REPORT_COUNT (8)
+    0x81, 0x02,			//			INPUT (Data,Var,Abs)
+	0xc0,				//		END_COLLECTION
+    0xc0,				// END_COLLECTION
+
+
 };
 
 Gamepad SnesGamepad = {
-	report_size: 		REPORT_SIZE,
-	reportDescriptorSize:	sizeof(snes_usbHidReportDescriptor),
-	init: 			snesInit,
-	update: 		snesUpdate,
-	changed:		snesChanged,
-	buildReport:		snesBuildReport
+	.num_reports 			= 4,
+	.reportDescriptorSize	= sizeof(snes_usbHidReportDescriptor),
+	.init					= snesInit,
+	.update					= snesUpdate,
+	.changed				= snesChanged,
+	.buildReport			= snesBuildReport
 };
 
 Gamepad *snesGetGamepad(void)

@@ -1,2 +1,9 @@
+--- v1.1 (18 Apr 2007)
+- Changed report descriptor. There are now four separate report IDs, one
+per controller. This was necessary because even though all axis and buttons
+were perfectly functional in 'control panel -> game controllers', it was not
+the case in many games, including zsnes and snes9x!
+- Changed device id to 0x0A9D
+
 --- v1.0 (24 Mar 2007)
 Initial release.

@@ -57,9 +57,9 @@ Table of contents:
 	http://www.mecanique.co.uk/products/usb/pid.html
 
 
-6) Where do I get more information and updates?
+6) Where can I get more information and updates?
    --------------------------------------------
-	Visit 4nes4snes page:
+	Visit the 4nes4snes webpage:
 	http://www.raphnet.net/electronique/4nes4snes/index_en.php
 	you may also contact me by email:
 	Raphael Assenat <raph@raphnet.net>

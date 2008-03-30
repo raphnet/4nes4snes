@@ -17,7 +17,9 @@ Table of contents:
 	controllers to a PC using a single circuit. 
 
 	The device connects to an USB port and appears to the
-	PC as standard HID joystick with 8 axes and 32 buttons. 
+	PC as standard HID joystick with 4 report Id's. This means
+	that it looks like 4 controllers in Windows's 
+	control_panel->game_controllers window.
 
 
 2) USB Implementation

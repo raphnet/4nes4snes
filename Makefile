@@ -5,7 +5,7 @@
 # Tabsize: 4
 # Copyright: (c) 2006 by OBJECTIVE DEVELOPMENT Software GmbH
 # License: Proprietary, free under certain conditions. See Documentation.
-# This Revision: $Id: Makefile,v 1.1 2007-03-25 02:59:30 raph Exp $
+# This Revision: $Id: Makefile,v 1.2 2008-03-30 15:21:39 raph Exp $
 
 UISP = uisp -dprog=stk500 -dpart=atmega8 -dserial=/dev/avr
 COMPILE = avr-gcc -Wall -Os -Iusbdrv -I. -mmcu=atmega8 #-DDEBUG_LEVEL=1
@@ -47,6 +47,9 @@ flash:	all
 	#$(UISP) --erase --upload --verify if=main.hex
 	$(UISP) --erase --upload if=main.hex
 
+flash_usb:
+	sudo avrdude -p m8 -P usb -c avrispmkII -Uflash:w:$(HEXFILE) -B 1.0
+
 # Fuse high byte:
 # 0xc9 = 1 1 0 0   1 0 0 1 <-- BOOTRST (boot reset vector at 0x0000)
 #        ^ ^ ^ ^   ^ ^ ^------ BOOTSZ0
@@ -66,5 +69,7 @@ flash:	all
 fuse:
 	$(UISP) --wr_fuse_h=0xc9 --wr_fuse_l=0x9f
 
+fuse_usb:
+	sudo avrdude -p m8 -P usb -c avrispmkII -Uhfuse:w:0xc9:m -Ulfuse:w:0x9f:m -B 10.0
 
 

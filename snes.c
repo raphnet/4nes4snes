@@ -61,6 +61,45 @@ static unsigned char last_reported_controller_bytes[GAMEPAD_BYTES];
 
 // indicates if a controller is in NES mode
 static unsigned char nesMode=0;	/* Bit0: controller 1, Bit1: controller 2...*/
+static unsigned char fourscore_mode = 0;
+
+static void autoDetectFourScore(void)
+{
+	unsigned char dat18th_low = 0;
+	unsigned char hc=0;
+	int i;
+
+	SNES_LATCH_HIGH();
+	_delay_us(12);
+	SNES_LATCH_LOW();
+
+	for (i=0; i<24; i++)
+	{
+		_delay_us(6);
+		SNES_CLOCK_LOW();
+		
+		if (!SNES_GET_DATA1()) {
+			if (i==19) {
+				dat18th_low = 1;
+			}
+		}
+		else {
+			hc++;
+		}
+
+
+		_delay_us(6);
+		SNES_CLOCK_HIGH();
+	}
+
+	if (dat18th_low && hc == 23) {
+		// only 18th data bit was low. Looks like a FOUR SCORE.
+		fourscore_mode = 1;
+	}
+		
+	return;
+
+}
 
 static void snesInit(void)
 {
@@ -112,6 +151,8 @@ static void snesInit(void)
 	if (last_read_controller_bytes[7]==0xFF)
 		nesMode |= 8;
 
+	autoDetectFourScore();
+
 	SREG = sreg;
 }
 
@@ -151,6 +192,58 @@ static void snesUpdate(void)
 	_delay_us(12);
 	SNES_LATCH_LOW();
 
+	if (fourscore_mode) 
+	{
+		/* Nes controller buttons are sent in this order:
+		 * One byte: A B SEL START UP DOWN LEFT RIGHT */
+	
+		for (i=0; i<8; i++)
+		{
+			_delay_us(6);
+			SNES_CLOCK_LOW();
+		
+			// FourScore to be connected to ports 1 and 2	
+			tmp1 <<= 1;	
+			tmp2 <<= 1;	
+			if (!SNES_GET_DATA1()) { tmp1 |= 1; }
+			if (!SNES_GET_DATA2()) { tmp2 |= 1; }
+
+			_delay_us(6);
+			SNES_CLOCK_HIGH();
+		}
+
+		for (i=0; i<8; i++)
+		{
+			_delay_us(6);
+			SNES_CLOCK_LOW();
+		
+			// FourScore to be connected to ports 1 and 2	
+			tmp3 <<= 1;	
+			tmp4 <<= 1;	
+			if (!SNES_GET_DATA1()) { tmp3 |= 1; }
+			if (!SNES_GET_DATA2()) { tmp4 |= 1; }
+
+			_delay_us(6);
+			SNES_CLOCK_HIGH();
+		}
+
+		for (i=0; i<8; i++)
+		{
+			_delay_us(6);
+			SNES_CLOCK_LOW();
+		
+			_delay_us(6);
+			SNES_CLOCK_HIGH();
+		}
+		last_read_controller_bytes[0] = tmp1;
+		last_read_controller_bytes[1] = tmp2;
+		last_read_controller_bytes[2] = tmp3;
+		last_read_controller_bytes[3] = tmp4;
+
+		return;
+	}
+
+
 	for (i=0; i<8; i++)
 	{
 		_delay_us(6);
@@ -166,7 +259,6 @@ static void snesUpdate(void)
 		if (!SNES_GET_DATA4()) { tmp4 |= 1; }
 
 		_delay_us(6);
-		
 		SNES_CLOCK_HIGH();
 	}
 	last_read_controller_bytes[0] = tmp1;
@@ -208,6 +300,10 @@ static char snesChanged(char report_id)
 {
 	report_id--; // first report is 1
 
+	if (fourscore_mode) {
+		return last_read_controller_bytes[report_id] != last_reported_controller_bytes[report_id];
+	}
+
 	return memcmp(	&last_read_controller_bytes[report_id<<1], 
 					&last_reported_controller_bytes[report_id<<1], 
 					2);
@@ -246,7 +342,7 @@ static unsigned char snesReorderButtons(unsigned char bytes[2])
 
 static char snesBuildReport(unsigned char *reportBuffer, char id)
 {
-	char idx;
+	int idx;
 
 	if (id < 0 || id > 4)
 		return 0;
@@ -264,7 +360,33 @@ static char snesBuildReport(unsigned char *reportBuffer, char id)
 	 *
 	 * [6] : controller 4, 8 first bits
 	 * [7] : controller 4, 4 extra snes buttons
+	 *
+	 *
+	 * last_read_controller_bytes[] structure in FOUR SCORE mode:
+	 *
+	 *  A B SEL START UP DOWN LEFT RIGHT 
+	 *
+	 * [0] : NES controller 1 data
+	 * [1] : NES controller 2 data
+	 * [2] : NES controller 3 data
+	 * [3] : NES controller 4 data
+	 *
 	 */
+
+	if (fourscore_mode) {
+		idx = id - 1;
+		if (reportBuffer != NULL)
+		{
+			reportBuffer[0]=id;
+			reportBuffer[1]=getX(last_read_controller_bytes[idx]);
+			reportBuffer[2]=getY(last_read_controller_bytes[idx]);
+			reportBuffer[3] = last_read_controller_bytes[idx] & 0xf0;
+		}
+
+		last_reported_controller_bytes[idx] = last_read_controller_bytes[idx];
+
+		return 4;
+	}
 
 	idx = id - 1;
 	if (reportBuffer != NULL)

@@ -5,17 +5,17 @@
 # Tabsize: 4
 # Copyright: (c) 2006 by OBJECTIVE DEVELOPMENT Software GmbH
 # License: Proprietary, free under certain conditions. See Documentation.
-# This Revision: $Id: Makefile,v 1.2 2008-03-30 15:21:39 raph Exp $
+# This Revision: $Id: Makefile,v 1.3 2009-05-02 12:07:45 cvs Exp $
 
 UISP = uisp -dprog=stk500 -dpart=atmega8 -dserial=/dev/avr
 COMPILE = avr-gcc -Wall -Os -Iusbdrv -I. -mmcu=atmega8 #-DDEBUG_LEVEL=1
 COMMON_OBJS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o
 
 OBJECTS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o snes.o devdesc.o
-
+HEXFILE=main.hex
 
 # symbolic targets:
-all:	main.hex
+all:	$(HEXFILE)
 
 .c.o:
 	$(COMPILE) -c $< -o $@
@@ -32,20 +32,20 @@ all:	main.hex
 
 
 clean:
-	rm -f main.hex main.lst main.obj main.cof main.list main.map main.eep.hex main.bin *.o usbdrv/*.o main.s usbdrv/oddebug.s usbdrv/usbdrv.s
+	rm -f $(HEXFILE) main.lst main.obj main.cof main.list main.map main.eep.hex main.bin *.o usbdrv/*.o main.s usbdrv/oddebug.s usbdrv/usbdrv.s
 
 # file targets:
 main.bin:	$(COMMON_OBJS)	snes.o devdesc.o 
 	$(COMPILE) -o main.bin $(OBJECTS) -Wl,-Map=main.map
 
-main.hex:	main.bin
-	rm -f main.hex main.eep.hex
-	avr-objcopy -j .text -j .data -O ihex main.bin main.hex
+$(HEXFILE):	main.bin
+	rm -f $(HEXFILE) main.eep.hex
+	avr-objcopy -j .text -j .data -O ihex main.bin $(HEXFILE)
 	./checksize main.bin
 
 flash:	all
-	#$(UISP) --erase --upload --verify if=main.hex
-	$(UISP) --erase --upload if=main.hex
+	#$(UISP) --erase --upload --verify if=$(HEXFILE)
+	$(UISP) --erase --upload if=$(HEXFILE)
 
 flash_usb:
 	sudo avrdude -p m8 -P usb -c avrispmkII -Uflash:w:$(HEXFILE) -B 1.0

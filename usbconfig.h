@@ -5,7 +5,7 @@
  * Tabsize: 4
  * Copyright: (c) 2005 by OBJECTIVE DEVELOPMENT Software GmbH
  * License: Proprietary, free under certain conditions. See Documentation.
- * This Revision: $Id: usbconfig.h,v 1.5 2007-04-18 23:58:01 raph Exp $
+ * This Revision: $Id: usbconfig.h,v 1.6 2009-05-02 12:07:46 cvs Exp $
  */
 
 #ifndef __usbconfig_h_included__
@@ -102,7 +102,7 @@ must be adapted to your hardware.
  * you use obdev's free shared VID/PID pair. Be sure to read the rules in
  * USBID-License.txt!
  */
-#define USB_CFG_DEVICE_VERSION  0x01, 0x01
+#define USB_CFG_DEVICE_VERSION  0x02, 0x01
 /* Version number of the device: Minor number first, then major number.
  */
 #define USB_CFG_VENDOR_NAME     'r', 'a', 'p', 'h', 'n', 'e', 't', '.', 'n', 'e', 't'

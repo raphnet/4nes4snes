@@ -1,4 +1,4 @@
-/* Name: snes.c
+/* Name: fournsnes.c
  * Project: Multiple NES/SNES to USB converter
  * Author: Raphael Assenat <raph@raphnet.net>
  * Copyright: (C) 2007-2009 Raphael Assenat <raph@raphnet.net>
@@ -14,7 +14,7 @@
 #include <string.h>
 #include "gamepad.h"
 #include "leds.h"
-#include "snes.h"
+#include "fournsnes.h"
 
 #define GAMEPAD_BYTES	8	/* 2 byte per snes controller * 4 controllers */
 
@@ -47,10 +47,10 @@
 #define SNES_GET_DATA4()	(SNES_DATA_PIN & SNES_DATA_BIT4)
 
 /*********** prototypes *************/
-static void snesInit(void);
-static void snesUpdate(void);
-static char snesChanged(char report_id);
-static char snesBuildReport(unsigned char *reportBuffer, char report_id);
+static void fournsnesInit(void);
+static void fournsnesUpdate(void);
+static char fournsnesChanged(char report_id);
+static char fournsnesBuildReport(unsigned char *reportBuffer, char report_id);
 
 
 // the most recent bytes we fetched from the controller
@@ -107,7 +107,7 @@ static void autoDetectFourScore(void)
 
 }
 
-static void snesInit(void)
+static void fournsnesInit(void)
 {
 	unsigned char sreg;
 	sreg = SREG;
@@ -130,7 +130,7 @@ static void snesInit(void)
 	SNES_LATCH_PORT &= ~(SNES_LATCH_BIT);
 
 	nesMode = 0;
-	snesUpdate();
+	fournsnesUpdate();
 
 	if (!live_autodetect) {	
 		/* Snes controller buttons are sent in this order:
@@ -188,7 +188,7 @@ static void snesInit(void)
  *
  */
 
-static void snesUpdate(void)
+static void fournsnesUpdate(void)
 {
 	int i;
 	unsigned char tmp1=0;
@@ -329,7 +329,7 @@ static void snesUpdate(void)
 
 }
 
-static char snesChanged(char report_id)
+static char fournsnesChanged(char report_id)
 {
 	report_id--; // first report is 1
 
@@ -373,7 +373,7 @@ static unsigned char snesReorderButtons(unsigned char bytes[2])
 	return v;
 }
 
-static char snesBuildReport(unsigned char *reportBuffer, char id)
+static char fournsnesBuildReport(unsigned char *reportBuffer, char id)
 {
 	int idx;
 
@@ -441,7 +441,7 @@ static char snesBuildReport(unsigned char *reportBuffer, char id)
 	return 4;
 }
 
-const char snes_usbHidReportDescriptor[] PROGMEM = {
+const char fournsnes_usbHidReportDescriptor[] PROGMEM = {
 
 	/* Controller and report_id 1 */
     0x05, 0x01,			// USAGE_PAGE (Generic Desktop)
@@ -549,16 +549,16 @@ const char snes_usbHidReportDescriptor[] PROGMEM = {
 
 Gamepad SnesGamepad = {
 	.num_reports 			= 4,
-	.reportDescriptorSize	= sizeof(snes_usbHidReportDescriptor),
-	.init					= snesInit,
-	.update					= snesUpdate,
-	.changed				= snesChanged,
-	.buildReport			= snesBuildReport
+	.reportDescriptorSize	= sizeof(fournsnes_usbHidReportDescriptor),
+	.init					= fournsnesInit,
+	.update					= fournsnesUpdate,
+	.changed				= fournsnesChanged,
+	.buildReport			= fournsnesBuildReport
 };
 
-Gamepad *snesGetGamepad(void)
+Gamepad *fournsnesGetGamepad(void)
 {
-	SnesGamepad.reportDescriptor = (void*)snes_usbHidReportDescriptor;
+	SnesGamepad.reportDescriptor = (void*)fournsnes_usbHidReportDescriptor;
 
 	return &SnesGamepad;
 }

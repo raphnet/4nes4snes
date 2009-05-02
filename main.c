@@ -17,7 +17,7 @@
 #include "oddebug.h"
 #include "gamepad.h"
 
-#include "snes.h"
+#include "fournsnes.h"
 
 #include "leds.h"
 #include "devdesc.h"
@@ -212,10 +212,33 @@ int main(void)
 	char must_report = 0;	/* bitfield */
 	uchar   idleCounters[MAX_REPORTS];
 	int i;
+	unsigned char run_mode;
 
 	memset(idleCounters, 0, MAX_REPORTS);
 
-	curGamepad = snesGetGamepad();
+
+	DDRB |= 0x01;
+	DDRB &= ~0x06;
+	PORTB |= 0x06; /* enable pull up on DB1 and DB2 */
+	PORTB &= ~0x01; /* Set DB0 to low */
+
+	_delay_ms(10); /* let pins settle */
+	run_mode = (PINB & 0x06)>>1;
+
+	switch(run_mode)
+	{
+			// Close JP1 to disable live auto-detect
+		case 2:
+			disableLiveAutodetect();
+			break;
+
+		case 1:
+		case 3:
+		case 4:
+			break;
+	}
+
+	curGamepad = fournsnesGetGamepad();
 
 	// configure report descriptor according to
 	// the current gamepad

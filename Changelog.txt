@@ -1,5 +1,8 @@
 --- v1.2 (May 2, 2009)
-Added NES fourscore support. When a fourscore is detected in port 1, fourscore
+- License changed to GPLv2
+- Implemented "Live autodetection". This allows NES and SNES controllers to be
+changed at runtime. This features can be disabled by closing JP1.
+- Added NES fourscore support. When a fourscore is detected in port 1, fourscore
 mode is entered and ports 1 and 2 are used to read up to 4 NES controllers.
 
 --- v1.1 (18 Apr 2007)

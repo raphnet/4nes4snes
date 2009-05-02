@@ -5,10 +5,10 @@
 # Tabsize: 4
 # Copyright: (c) 2006 by OBJECTIVE DEVELOPMENT Software GmbH
 # License: Proprietary, free under certain conditions. See Documentation.
-# This Revision: $Id: Makefile,v 1.3 2009-05-02 12:07:45 cvs Exp $
+# This Revision: $Id: Makefile,v 1.4 2009-05-02 13:55:11 cvs Exp $
 
 UISP = uisp -dprog=stk500 -dpart=atmega8 -dserial=/dev/avr
-COMPILE = avr-gcc -Wall -Os -Iusbdrv -I. -mmcu=atmega8 #-DDEBUG_LEVEL=1
+COMPILE = avr-gcc -Wall -Os -Iusbdrv -I. -mmcu=atmega8 -DF_CPU=12000000L #-DDEBUG_LEVEL=1
 COMMON_OBJS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o
 
 OBJECTS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o snes.o devdesc.o

@@ -1,8 +1,8 @@
 /* Name: snes.c
  * Project: Multiple NES/SNES to USB converter
  * Author: Raphael Assenat <raph@raphnet.net>
- * Copyright: (C) 2007 Raphael Assenat <raph@raphnet.net>
- * License: Proprietary, free under certain conditions. See Documentation.
+ * Copyright: (C) 2007-2009 Raphael Assenat <raph@raphnet.net>
+ * License: GPLv2
  * Tabsize: 4
  */
 #define F_CPU   12000000L  
@@ -62,6 +62,12 @@ static unsigned char last_reported_controller_bytes[GAMEPAD_BYTES];
 // indicates if a controller is in NES mode
 static unsigned char nesMode=0;	/* Bit0: controller 1, Bit1: controller 2...*/
 static unsigned char fourscore_mode = 0;
+static unsigned char live_autodetect = 1;
+
+void disableLiveAutodetect(void)
+{
+	live_autodetect = 0;
+}
 
 static void autoDetectFourScore(void)
 {
@@ -125,31 +131,33 @@ static void snesInit(void)
 
 	nesMode = 0;
 	snesUpdate();
-	
-	/* Snes controller buttons are sent in this order:
-	 * 1st byte: B Y SEL START UP DOWN LEFT RIGHT 
-	 * 2nd byte: A X L R 1 1 1 1
-	 *
-	 * Nes controller buttons are sent in this order:
-	 * One byte: A B SEL START UP DOWN LEFT RIGHT
-	 *
-	 * When an additional byte is read from a NES controller,
-	 * all bits are 0. Because the data signal is active low,
-	 * this corresponds to pressed buttons. When we read
-	 * from the controller for the first time, detect NES
-	 * controllers by checking those 4 bits.
-	 **/
-	if (last_read_controller_bytes[1]==0xFF)
-		nesMode |= 1;
 
-	if (last_read_controller_bytes[3]==0xFF)
-		nesMode |= 2;
+	if (!live_autodetect) {	
+		/* Snes controller buttons are sent in this order:
+		 * 1st byte: B Y SEL START UP DOWN LEFT RIGHT 
+		 * 2nd byte: A X L R 1 1 1 1
+		 *
+		 * Nes controller buttons are sent in this order:
+		 * One byte: A B SEL START UP DOWN LEFT RIGHT
+		 *
+		 * When an additional byte is read from a NES controller,
+		 * all bits are 0. Because the data signal is active low,
+		 * this corresponds to pressed buttons. When we read
+		 * from the controller for the first time, detect NES
+		 * controllers by checking those 4 bits.
+		 **/
+		if (last_read_controller_bytes[1]==0xFF)
+			nesMode |= 1;
 
-	if (last_read_controller_bytes[5]==0xFF)
-		nesMode |= 4;
+		if (last_read_controller_bytes[3]==0xFF)
+			nesMode |= 2;
 
-	if (last_read_controller_bytes[7]==0xFF)
-		nesMode |= 8;
+		if (last_read_controller_bytes[5]==0xFF)
+			nesMode |= 4;
+
+		if (last_read_controller_bytes[7]==0xFF)
+			nesMode |= 8;
+	}
 
 	autoDetectFourScore();
 
@@ -286,6 +294,31 @@ static void snesUpdate(void)
 		_delay_us(6);
 		SNES_CLOCK_HIGH();
 	}
+
+
+	if (live_autodetect) {	
+		if (tmp1==0xFF)
+			nesMode |= 1;
+		else
+			nesMode &= ~1;
+
+		if (tmp2==0xFF)
+			nesMode |= 2;
+		else
+			nesMode &= ~2;
+
+		if (tmp3==0xFF)
+			nesMode |= 4;
+		else
+			nesMode &= ~4;
+
+		if (tmp4==0xFF)
+			nesMode |= 8;
+		else
+			nesMode &= ~8;
+
+	}
+
 	/* Force extra bits to 0 when in NES mode. Otherwise, if
 	 * we read zeros on the wire, we will have permanantly 
 	 * pressed buttons */

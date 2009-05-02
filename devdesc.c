@@ -19,16 +19,9 @@ const char usbDescrDevice[] PROGMEM = {    /* USB device descriptor */
 #else
     0,          /* manufacturer string index */
 #endif
-#if USB_CFG_DEVICE_NAME_LEN
+
     2,          /* product string index */
-#else
-    0,          /* product string index */
-#endif
-#if USB_CFG_SERIAL_NUMBER_LENGTH
     3,          /* serial number string index */
-#else
-    0,          /* serial number string index */
-#endif
     1,          /* number of configurations */
 };
 

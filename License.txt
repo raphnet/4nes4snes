@@ -1,130 +1,12 @@
-PREFACE
+		    GNU GENERAL PUBLIC LICENSE
+		       Version 2, June 1991
 
-Conceiving and understanding a new license is not an easy task. To make things
-easier for both, the author and the licensee, we have decided to base our
-license for the USB driver on an existing license with well-understood
-properties.
-
-Our favorite choice for the base license was the GNU General Public License
-(GPL). However, we cannot use the GNU GPL directly for the following reasons:
-
-(1) It was not intended for projects involving hardware -- we must extend the
-    term "source code" to at least the circuit diagram.
-(2) The GNU GPL does not require publication. Only if a binary is published,
-    it requires that the source is published as well. This is reasonable for
-    software because unpublished software is of little relevance. For projects
-    involving hardware, we want to REQUIRE publication. More than that, we
-    even want to define HOW the publication must be done (files contained,
-    file formats etc).
-(3) As the author of the software, we can distribute it under more than one
-    license. For people who don't want to meet the obligations of the GNU GPL,
-    we want to offer commercial licenses. To avoid a split in revisions of
-    the driver, we need special privileges to distribute contributed
-    modifications under proprietary licenses.
-
-We can not simply modify the GNU GPL and incorporate our changes because the
-Free Software Foundation (FSF) who holds the copyright for the text of the
-GNU GPL does not allow modifications. We therefore set up our own small
-license which incorporates the GNU GPL by reference:
-
-
-
-LICENSE FOR PROJECTS BUILT WITH "OBJECTIVE DEVELOPMENT'S
-FIRMWARE-ONLY USB-DRIVER FOR ATMEL'S AVR MICROCONTROLLERS"
-Version 2006-01
-
-
-I. Definitions
-
-"OBDEV" shall mean OBJECTIVE DEVELOPMENT Software GmbH or any legal successor
-thereof.
-
-"Software Source Code" shall mean the preferred form of the software for
-making modifications to it.
-
-"USB Driver" shall mean the Software Source Code for OBDEV's firmware-only
-USB-driver for Atmel's AVR microcontrollers.
-
-"Function" shall mean the Software Source Code for all software executed on
-the microcontroller except the USB Driver.
-
-"Host Software" shall mean the Software Source Code for all software required
-to control the USB device from the USB host running any operating system.
-
-"Project" shall mean the USB Driver, the Function, the Host Software, circuit
-diagrams of the controller based hardware and accompanying documentation.
-
-"source code" shall have the same meaning as the term "Project" above.
-
-"Web Site" shall mean a collection of text and multimedia documents accessible
-worldwide over internet through the HyperText Transfer Protocol (HTTP) on
-TCP port 80 (standard HTTP port).
-
-
-II. General License Terms
-The general terms of this license consist of the GNU General Public License
-Version 2 (GNU GPL2) which is hereby incorporated into this section as though
-it were fully set forth here. A copy of the GNU GPL2 is included for your
-convenience in appendix A of this license.
-
-The term "source code" in the GNU GPL2 is to be understood as defined in
-section I above. If any term or definition in section I, III, IV or V
-conflicts with the GNU GPL2, the term or definition in section I, III, IV or
-V has precedence of the GNU GPL2.
-
-
-III. Distribution of the Project
-The distributed form of a Project must contain at least the following files:
-(a) Software Source Code files for the USB Driver, the Function and the Host
-    Software.
-(b) Circuit diagrams for the hardware in PDF, PNG or GIF image file format.
-(c) A file with name "Readme.txt" in ASCII format with at least the following
-    content (in English language):
-    - An explanation what the Project does.
-    - What to do with the distributed files (installation procedure etc.).
-    - A reference to Objective Development's USB driver.
-    - Your (author's) name and contact information. E-mail and/or URL is
-      sufficient.
-(d) Optionally a text file with a description of the circuit diagram, an
-    explanation of special (software) techniques used etc. 
-(e) A copy of this license in a file with the name "License.txt". This copy
-    can be in the "usbdrv" subdirectory which contains the driver.
-
-
-IV. Requirement for Publication
-All modifications and derived work (Projects using the USB Driver) MUST be
-distributed (published) as described in section III above on a Web Site. The
-main page must reproduce at least a description of the Project (e.g. as
-contained in the "Readme.txt" file distributed) and a download link for the
-entire Project. The URL of the main page must be submitted to OBDEV. OBDEV
-will provide a mechanism for submitting Project URLs and for publishing
-Projects on their Web Site. The Project must remain available for at least
-twelve (12) months after the initial publication or at least six (6) months
-after a subsequent version of that particular Project has been published.
-
-
-V. Author Privileges
-OBDEV reserves the right to distribute the USB Driver and all modified
-versions under other (proprietary) licenses. If you modify the USB Driver
-under the grants of this license, you therefore grant OBDEV (in addition to
-the grants of the GNU GPL2) a worldwide, perpetual, irrevocable royalty free
-license for your modifications. OBDEV shall not automatically gain rights
-other than those of the GNU GPL2 in the other parts of the Project. This
-section V overrides possibly contradicting terms in the GNU GPL2 referenced
-in section II.
-
-
-APPENDIX A
-
-                    GNU GENERAL PUBLIC LICENSE
-                       Version 2, June 1991
-
- Copyright (C) 1989, 1991 Free Software Foundation, Inc.
-                       59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
+ 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  Everyone is permitted to copy and distribute verbatim copies
  of this license document, but changing it is not allowed.
 
-                            Preamble
+			    Preamble
 
   The licenses for most software are designed to take away your
 freedom to share and change it.  By contrast, the GNU General Public
@@ -133,7 +15,7 @@ software--to make sure the software is free for all its users.  This
 General Public License applies to most of the Free Software
 Foundation's software and to any other program whose authors commit to
 using it.  (Some other Free Software Foundation software is covered by
-the GNU Library General Public License instead.)  You can apply it to
+the GNU Lesser General Public License instead.)  You can apply it to
 your programs, too.
 
   When we speak of free software, we are referring to freedom, not
@@ -173,8 +55,8 @@ patent must be licensed for everyone's free use or not licensed at all.
 
   The precise terms and conditions for copying, distribution and
 modification follow.
-
-                    GNU GENERAL PUBLIC LICENSE
+
+		    GNU GENERAL PUBLIC LICENSE
    TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
 
   0. This License applies to any program or other work which contains
@@ -228,7 +110,7 @@ above, provided that you also meet all of these conditions:
     License.  (Exception: if the Program itself is interactive but
     does not normally print such an announcement, your work based on
     the Program is not required to print an announcement.)
-
+
 These requirements apply to the modified work as a whole.  If
 identifiable sections of that work are not derived from the Program,
 and can be reasonably considered independent and separate works in
@@ -286,7 +168,7 @@ access to copy from a designated place, then offering equivalent
 access to copy the source code from the same place counts as
 distribution of the source code, even though third parties are not
 compelled to copy the source along with the object code.
-
+
   4. You may not copy, modify, sublicense, or distribute the Program
 except as expressly provided under this License.  Any attempt
 otherwise to copy, modify, sublicense or distribute the Program is
@@ -343,7 +225,7 @@ impose that choice.
 
 This section is intended to make thoroughly clear what is believed to
 be a consequence of the rest of this License.
-
+
   8. If the distribution and/or use of the Program is restricted in
 certain countries either by patents or by copyrighted interfaces, the
 original copyright holder who places the Program under this License
@@ -373,7 +255,7 @@ make exceptions for this.  Our decision will be guided by the two goals
 of preserving the free status of all derivatives of our free software and
 of promoting the sharing and reuse of software generally.
 
-                            NO WARRANTY
+			    NO WARRANTY
 
   11. BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
 FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.  EXCEPT WHEN
@@ -395,9 +277,9 @@ YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
 PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGES.
 
-                     END OF TERMS AND CONDITIONS
-
-            How to Apply These Terms to Your New Programs
+		     END OF TERMS AND CONDITIONS
+
+	    How to Apply These Terms to Your New Programs
 
   If you develop a new program, and you want it to be of the greatest
 possible use to the public, the best way to achieve this is to make it
@@ -421,10 +303,9 @@ the "copyright" line and a pointer to where the full notice is found.
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 Also add information on how to contact you by electronic and paper mail.
 
@@ -454,5 +335,5 @@ necessary.  Here is a sample; alter the names:
 This General Public License does not permit incorporating your program into
 proprietary programs.  If your program is a subroutine library, you may
 consider it more useful to permit linking proprietary applications with the
-library.  If this is what you want to do, use the GNU Library General
+library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.

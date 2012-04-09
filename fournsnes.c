@@ -35,6 +35,11 @@
 #define SNES_DATA_BIT3	(1<<1)	/* controller 3 */
 #define SNES_DATA_BIT4	(1<<0)	/* controller 4 */
 
+#define MULTITAP_SELECT_PORT	PORTB
+#define MULTITAP_SELECT_DDR		DDRB
+#define MULTITAP_SELECT_PIN		PINB
+#define MULTITAP_SELECT_BIT		(1<<5)
+
 /********* IO port manipulation macros **********/
 #define SNES_LATCH_LOW()	do { SNES_LATCH_PORT &= ~(SNES_LATCH_BIT); } while(0)
 #define SNES_LATCH_HIGH()	do { SNES_LATCH_PORT |= SNES_LATCH_BIT; } while(0)
@@ -45,6 +50,9 @@
 #define SNES_GET_DATA2()	(SNES_DATA_PIN & SNES_DATA_BIT2)
 #define SNES_GET_DATA3()	(SNES_DATA_PIN & SNES_DATA_BIT3)
 #define SNES_GET_DATA4()	(SNES_DATA_PIN & SNES_DATA_BIT4)
+
+#define MTAP_SELECT_HIGH()	do { MULTITAP_SELECT_PORT |= MULTITAP_SELECT_BIT; } while(0)
+#define MTAP_SELECT_LOW()	do { MULTITAP_SELECT_PORT &= ~MULTITAP_SELECT_BIT; } while(0)
 
 /*********** prototypes *************/
 static void fournsnesInit(void);
@@ -62,11 +70,51 @@ static unsigned char last_reported_controller_bytes[GAMEPAD_BYTES];
 // indicates if a controller is in NES mode
 static unsigned char nesMode=0;	/* Bit0: controller 1, Bit1: controller 2...*/
 static unsigned char fourscore_mode = 0;
+static unsigned char multitap_mode = 0; // SNES
 static unsigned char live_autodetect = 1;
 
 void disableLiveAutodetect(void)
 {
 	live_autodetect = 0;
+}
+
+static void autoDetectSNESMultiTap(void)
+{
+	// Detection is done by observing that DATA2 becomes 
+	// low when LATCH is high.
+	//
+	// Not sure which state of MTAP_SELECT_HIGH is reliable
+	// so I'm simply trying with both states.
+
+	MTAP_SELECT_LOW();
+
+	if (SNES_GET_DATA2()) {
+		SNES_LATCH_HIGH();
+		_delay_us(12);
+
+		if (!SNES_GET_DATA2()) {
+			SNES_LATCH_LOW();
+			_delay_us(12);
+			if (SNES_GET_DATA2()) {
+				multitap_mode = 1;
+			}
+		}
+	}
+
+	MTAP_SELECT_HIGH();
+
+	if (SNES_GET_DATA2()) {
+		SNES_LATCH_HIGH();
+		_delay_us(12);
+
+		if (!SNES_GET_DATA2()) {
+			SNES_LATCH_LOW();
+			_delay_us(12);
+			if (SNES_GET_DATA2()) {
+				multitap_mode = 1;
+			}
+		}
+	}
 }
 
 static void autoDetectFourScore(void)
@@ -129,6 +177,11 @@ static void fournsnesInit(void)
 	// LATCH is Active HIGH
 	SNES_LATCH_PORT &= ~(SNES_LATCH_BIT);
 
+	
+	MULTITAP_SELECT_DDR |= MULTITAP_SELECT_BIT;
+	MULTITAP_SELECT_PORT |= MULTITAP_SELECT_BIT;
+
+
 	nesMode = 0;
 	fournsnesUpdate();
 
@@ -160,8 +213,72 @@ static void fournsnesInit(void)
 	}
 
 	autoDetectFourScore();
+	autoDetectSNESMultiTap();
 
 	SREG = sreg;
+}
+
+
+static void fournsnesUpdate_fourscore(void)
+{
+	int i;
+	unsigned char tmp1=0;
+	unsigned char tmp2=0;
+	unsigned char tmp3=0;
+	unsigned char tmp4=0;
+
+	SNES_LATCH_HIGH();
+	_delay_us(12);
+	SNES_LATCH_LOW();
+
+	/* Nes controller buttons are sent in this order:
+	 * One byte: A B SEL START UP DOWN LEFT RIGHT */
+
+	for (i=0; i<8; i++)
+	{
+		_delay_us(6);
+		SNES_CLOCK_LOW();
+	
+		// FourScore to be connected to ports 1 and 2	
+		tmp1 <<= 1;	
+		tmp2 <<= 1;	
+		if (!SNES_GET_DATA1()) { tmp1 |= 1; }
+		if (!SNES_GET_DATA2()) { tmp2 |= 1; }
+
+		_delay_us(6);
+		SNES_CLOCK_HIGH();
+	}
+
+	for (i=0; i<8; i++)
+	{
+		_delay_us(6);
+		SNES_CLOCK_LOW();
+	
+		// FourScore to be connected to ports 1 and 2	
+		tmp3 <<= 1;	
+		tmp4 <<= 1;	
+		if (!SNES_GET_DATA1()) { tmp3 |= 1; }
+		if (!SNES_GET_DATA2()) { tmp4 |= 1; }
+
+		_delay_us(6);
+		SNES_CLOCK_HIGH();
+	}
+
+	for (i=0; i<8; i++)
+	{
+		_delay_us(6);
+		SNES_CLOCK_LOW();
+	
+		_delay_us(6);
+		SNES_CLOCK_HIGH();
+	}
+	last_read_controller_bytes[0] = tmp1;
+	last_read_controller_bytes[1] = tmp2;
+	last_read_controller_bytes[2] = tmp3;
+	last_read_controller_bytes[3] = tmp4;
+
+	return;
+
 }
 
 
@@ -196,103 +313,137 @@ static void fournsnesUpdate(void)
 	unsigned char tmp3=0;
 	unsigned char tmp4=0;
 
-	SNES_LATCH_HIGH();
-	_delay_us(12);
-	SNES_LATCH_LOW();
-
 	if (fourscore_mode) 
 	{
-		/* Nes controller buttons are sent in this order:
-		 * One byte: A B SEL START UP DOWN LEFT RIGHT */
-	
-		for (i=0; i<8; i++)
-		{
-			_delay_us(6);
-			SNES_CLOCK_LOW();
-		
-			// FourScore to be connected to ports 1 and 2	
-			tmp1 <<= 1;	
-			tmp2 <<= 1;	
-			if (!SNES_GET_DATA1()) { tmp1 |= 1; }
-			if (!SNES_GET_DATA2()) { tmp2 |= 1; }
-
-			_delay_us(6);
-			SNES_CLOCK_HIGH();
-		}
-
-		for (i=0; i<8; i++)
-		{
-			_delay_us(6);
-			SNES_CLOCK_LOW();
-		
-			// FourScore to be connected to ports 1 and 2	
-			tmp3 <<= 1;	
-			tmp4 <<= 1;	
-			if (!SNES_GET_DATA1()) { tmp3 |= 1; }
-			if (!SNES_GET_DATA2()) { tmp4 |= 1; }
-
-			_delay_us(6);
-			SNES_CLOCK_HIGH();
-		}
-
-		for (i=0; i<8; i++)
-		{
-			_delay_us(6);
-			SNES_CLOCK_LOW();
-		
-			_delay_us(6);
-			SNES_CLOCK_HIGH();
-		}
-		last_read_controller_bytes[0] = tmp1;
-		last_read_controller_bytes[1] = tmp2;
-		last_read_controller_bytes[2] = tmp3;
-		last_read_controller_bytes[3] = tmp4;
-
+		fournsnesUpdate_fourscore();
 		return;
 	}
 
 
-	for (i=0; i<8; i++)
+	if (multitap_mode) 
 	{
-		_delay_us(6);
-		SNES_CLOCK_LOW();
-		
-		tmp1 <<= 1;	
-		tmp2 <<= 1;	
-		tmp3 <<= 1;	
-		tmp4 <<= 1;
-		if (!SNES_GET_DATA1()) { tmp1 |= 1; }
-		if (!SNES_GET_DATA2()) { tmp2 |= 1; }
-		if (!SNES_GET_DATA3()) { tmp3 |= 1; }
-		if (!SNES_GET_DATA4()) { tmp4 |= 1; }
+		SNES_LATCH_HIGH();
+		_delay_us(12);
+		SNES_LATCH_LOW();
+		_delay_us(12);
 
+		MTAP_SELECT_HIGH();
 		_delay_us(6);
-		SNES_CLOCK_HIGH();
+		for (i=0; i<8; i++)
+		{
+			SNES_CLOCK_LOW();
+			_delay_us(6);
+
+			tmp1 <<= 1;	
+			tmp2 <<= 1;	
+
+			if (!SNES_GET_DATA1()) { tmp1 |= 1; }
+			if (!SNES_GET_DATA2()) { tmp2 |= 1; }
+			
+			SNES_CLOCK_HIGH();
+			_delay_us(6);
+		}
+		last_read_controller_bytes[0] = tmp1;
+		last_read_controller_bytes[2] = tmp2;
+		for (i=0; i<8; i++)
+		{
+			SNES_CLOCK_LOW();
+			_delay_us(6);
+
+			tmp1 >>= 1;	
+			tmp2 >>= 1;	
+
+			if (!SNES_GET_DATA1()) { tmp1 |= 0x80; }
+			if (!SNES_GET_DATA2()) { tmp2 |= 0x80; }
+			
+			SNES_CLOCK_HIGH();
+			_delay_us(6);
+		}
+
+
+		MTAP_SELECT_LOW();
+		_delay_us(6);
+		for (i=0; i<8; i++)
+		{
+			SNES_CLOCK_LOW();
+			_delay_us(6);
+
+			tmp3 <<= 1;	
+			tmp4 <<= 1;	
+
+			if (!SNES_GET_DATA1()) { tmp3 |= 1; }
+			if (!SNES_GET_DATA2()) { tmp4 |= 1; }
+			
+			SNES_CLOCK_HIGH();
+			_delay_us(6);
+		}
+		last_read_controller_bytes[4] = tmp3;
+		last_read_controller_bytes[6] = tmp4;
+		for (i=0; i<8; i++)
+		{
+			SNES_CLOCK_LOW();
+			_delay_us(6);
+
+			tmp3 >>= 1;	
+			tmp4 >>= 1;	
+
+			if (!SNES_GET_DATA1()) { tmp3 |= 0x80; }
+			if (!SNES_GET_DATA2()) { tmp4 |= 0x80; }
+			
+			SNES_CLOCK_HIGH();
+			_delay_us(6);
+		}
+
+
 	}
-	last_read_controller_bytes[0] = tmp1;
-	last_read_controller_bytes[2] = tmp2;
-	last_read_controller_bytes[4] = tmp3;
-	last_read_controller_bytes[6] = tmp4;
+	else // standard mode (not multitap)
+	{			
+		SNES_LATCH_HIGH();
+		_delay_us(12);
+		SNES_LATCH_LOW();
 
-	for (i=0; i<8; i++)
-	{
-		_delay_us(6);
+		for (i=0; i<8; i++)
+		{
+			_delay_us(6);
+			SNES_CLOCK_LOW();
+			
+			tmp1 <<= 1;	
+			tmp2 <<= 1;	
+			tmp3 <<= 1;	
+			tmp4 <<= 1;
+			if (!SNES_GET_DATA1()) { tmp1 |= 1; }
+			if (!SNES_GET_DATA2()) { tmp2 |= 1; }
+			if (!SNES_GET_DATA3()) { tmp3 |= 1; }
+			if (!SNES_GET_DATA4()) { tmp4 |= 1; }
 
-		SNES_CLOCK_LOW();
+			_delay_us(6);
+			SNES_CLOCK_HIGH();
+		}
+		last_read_controller_bytes[0] = tmp1;
+		last_read_controller_bytes[2] = tmp2;
+		last_read_controller_bytes[4] = tmp3;
+		last_read_controller_bytes[6] = tmp4;
 
-		// notice that this is different from above. We
-		// want the bits to be in reverse-order
-		tmp1 >>= 1;	
-		tmp2 >>= 1;	
-		tmp3 >>= 1;	
-		tmp4 >>= 1;	
-		if (!SNES_GET_DATA1()) { tmp1 |= 0x80; }
-		if (!SNES_GET_DATA2()) { tmp2 |= 0x80; }
-		if (!SNES_GET_DATA3()) { tmp3 |= 0x80; }
-		if (!SNES_GET_DATA4()) { tmp4 |= 0x80; }
-		
-		_delay_us(6);
-		SNES_CLOCK_HIGH();
+		for (i=0; i<8; i++)
+		{
+			_delay_us(6);
+
+			SNES_CLOCK_LOW();
+
+			// notice that this is different from above. We
+			// want the bits to be in reverse-order
+			tmp1 >>= 1;	
+			tmp2 >>= 1;	
+			tmp3 >>= 1;	
+			tmp4 >>= 1;	
+			if (!SNES_GET_DATA1()) { tmp1 |= 0x80; }
+			if (!SNES_GET_DATA2()) { tmp2 |= 0x80; }
+			if (!SNES_GET_DATA3()) { tmp3 |= 0x80; }
+			if (!SNES_GET_DATA4()) { tmp4 |= 0x80; }
+			
+			_delay_us(6);
+			SNES_CLOCK_HIGH();
+		}
 	}
 
 

@@ -14,7 +14,7 @@ typedef struct {
 	void (*init)(void);
 	void (*update)(void);
 
-	char (*changed)(char id);
+	char (*changed)(unsigned char id);
 	/**
 	 * \param id Controller id (starting at 1 to match report IDs)
 	 * \return The number of bytes written to buf.

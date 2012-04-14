@@ -57,7 +57,7 @@
 /*********** prototypes *************/
 static void fournsnesInit(void);
 static void fournsnesUpdate(void);
-static char fournsnesChanged(char report_id);
+static char fournsnesChanged(unsigned char report_id);
 static char fournsnesBuildReport(unsigned char *reportBuffer, char report_id);
 
 
@@ -480,7 +480,7 @@ static void fournsnesUpdate(void)
 
 }
 
-static char fournsnesChanged(char report_id)
+static char fournsnesChanged(unsigned char report_id)
 {
 	report_id--; // first report is 1
 

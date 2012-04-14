@@ -1,3 +1,6 @@
+--- v1.3 (April 2012)
+- Added support for SNES multitaps in 4 player mode.
+
 --- v1.2 (May 2, 2009)
 - License changed to GPLv2
 - Implemented "Live autodetection". This allows NES and SNES controllers to be

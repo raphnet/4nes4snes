@@ -1,7 +1,7 @@
 /* Name: fournsnes.c
  * Project: Multiple NES/SNES to USB converter
  * Author: Raphael Assenat <raph@raphnet.net>
- * Copyright: (C) 2007-2009 Raphael Assenat <raph@raphnet.net>
+ * Copyright: (C) 2007-2012 Raphael Assenat <raph@raphnet.net>
  * License: GPLv2
  * Tabsize: 4
  */

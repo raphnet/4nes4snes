@@ -12,14 +12,17 @@ Table of contents:
 
 1) What is 4nes4snes?
    --------------------
-	4nes4snes if a firmware for Atmel ATmega8 which 
-	allows one to connect up to 4 NES and/or SNES 
+	4nes4snes if a firmware for Atmel ATmega8 and Atmega168* 
+	which allows one to connect up to 4 NES and/or SNES 
 	controllers to a PC using a single circuit. 
 
 	The device connects to an USB port and appears to the
 	PC as standard HID joystick with 4 report Id's. This means
 	that it looks like 4 controllers in Windows's 
 	control_panel->game_controllers window.
+
+* Other devices from the same family are probably supported, but
+not tested.
 
 
 2) USB Implementation
@@ -48,15 +51,13 @@ Table of contents:
 
 4) License
    -------
-	4nes4snes is released under Objective Development's extended GPL
-	license. See License.txt
+	4nes4snes is released under the GPLv2 license. See License.txt
 
 
 5) About the vendor id/product id pair:
    ------------------------------------
-	Please dont re-use them for other projects. Instead,
-	obtain your own. I got mine from mecanique:
-	http://www.mecanique.co.uk/products/usb/pid.html
+	Please do not re-use them for other projects. Instead,
+	obtain your own.
 
 
 6) Where can I get more information and updates?

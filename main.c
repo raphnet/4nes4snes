@@ -14,7 +14,6 @@
 #include <string.h>
 
 #include "usbdrv.h"
-#include "oddebug.h"
 #include "gamepad.h"
 
 #include "fournsnes.h"
@@ -26,6 +25,15 @@ static uchar *rt_usbHidReportDescriptor=NULL;
 static uchar rt_usbHidReportDescriptorSize=0;
 static uchar *rt_usbDeviceDescriptor=NULL;
 static uchar rt_usbDeviceDescriptorSize=0;
+
+
+#if defined(__AVR_ATmega168__) || defined(__AVR_ATmega168A__) || \
+	defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328__) || \
+	defined(__AVR_ATmega328P__) || defined(__AVR_ATmega88__) || \
+	defined(__AVR_ATmega88A__) || defined(__AVR_ATmega88P__) || \
+	defined(__AVR_ATmega88PA__)
+#define AT168_COMPATIBLE
+#endif
 
 /* The maximum number of independent reports that are supported. */
 #define MAX_REPORTS 8	
@@ -118,13 +126,29 @@ static void hardwareInit(void)
 		while(--i); /* delay >10ms for USB reset */
 	}
 	DDRD = 0x00;    /* 0000 0000 bin: remove USB reset condition */
-			/* configure timer 0 for a rate of 12M/(1024 * 256) = 45.78 Hz (~22ms) */
-	TCCR0 = 5;      /* timer 0 prescaler: 1024 */
 
+#if defined(AT168_COMPATIBLE)
+	TCCR2A= (1<<WGM21);
+	TCCR2B=(1<<CS22)|(1<<CS21)|(1<<CS20);
+	OCR2A=196;  // for 60 hz
+#else	
 	TCCR2 = (1<<WGM21)|(1<<CS22)|(1<<CS21)|(1<<CS20);
 	OCR2 = 196; // for 60 hz
-
+#endif
 }
+
+#if defined(AT168_COMPATIBLE)
+
+#define mustPollControllers()	(TIFR2 & (1<<OCF2A))
+#define clrPollControllers()	do { TIFR2 = 1<<OCF2A; } while(0)
+
+#else
+
+#define mustPollControllers()	(TIFR & (1<<OCF2))
+#define clrPollControllers()	do { TIFR = 1<<OCF2; } while(0)
+
+#endif
+
 
 static uchar    reportBuffer[12];    /* buffer for HID reports */
 
@@ -133,8 +157,6 @@ static uchar    reportBuffer[12];    /* buffer for HID reports */
 /* ------------------------------------------------------------------------- */
 /* ----------------------------- USB interface ----------------------------- */
 /* ------------------------------------------------------------------------- */
-
-static uchar    idleRates[MAX_REPORTS];           /* in 4 ms units */
 
 uchar	usbFunctionDescriptor(struct usbRequest *rq)
 {
@@ -167,7 +189,6 @@ static uchar reportPos=0;
 uchar	usbFunctionSetup(uchar data[8])
 {
 	usbRequest_t    *rq = (void *)data;
-	int i;
 
 	usbMsgPtr = reportBuffer;
 
@@ -180,24 +201,6 @@ uchar	usbFunctionSetup(uchar data[8])
 				reportPos=0;
 				return curGamepad->buildReport(reportBuffer, rq->wValue.bytes[0]);
 			
-			case USBRQ_HID_GET_IDLE:
-				if (rq->wValue.bytes[0] > 0 && rq->wValue.bytes[0] <= MAX_REPORTS) {
-					usbMsgPtr = idleRates + (rq->wValue.bytes[0] - 1);
-					return 1;
-				}
-				break;			
-			
-			case USBRQ_HID_SET_IDLE:
-				if (rq->wValue.bytes[0]==0) {
-					for (i=0; i<MAX_REPORTS; i++)
-						idleRates[i] = rq->wValue.bytes[1];	
-				}
-				else {
-					if (rq->wValue.bytes[0] > 0 && rq->wValue.bytes[0] <= MAX_REPORTS) {
-						idleRates[rq->wValue.bytes[0]-1] = rq->wValue.bytes[1];
-					}
-				}
-				break;
 		}
 	} else {
 		/* no vendor specific requests implemented */
@@ -264,14 +267,11 @@ int main(void)
 	//wdt_enable(WDTO_2S);
 	hardwareInit();
 	curGamepad->init();
-	odDebugInit();
 	usbInit();
 
 	curGamepad->update();
 
 	sei();
-	DBG1(0x00, 0, 0);
-
 	
 	for(;;){	/* main event loop */
 		wdt_reset();
@@ -280,10 +280,10 @@ int main(void)
 		usbPoll();
 
 		/* Read the controllers at 60hz */
-		if (TIFR & (1<<OCF2))
+		if (mustPollControllers())
 		{
-			TIFR = 1<<OCF2;
-				
+			clrPollControllers();
+		
 			curGamepad->update();
 
 			/* Check what will have to be reported */
@@ -294,27 +294,6 @@ int main(void)
 			}
 		}
 
-		/* Try to report at the granularity requested by
-		 * the host. */
-		if (TIFR & (1<<TOV0)) {   /* 22 ms timer */
-			TIFR = 1<<TOV0;
-
-			for (i=0; i<curGamepad->num_reports; i++)
-			{
-				// 0 means 
-				if(idleRates[i] != 0){
-					if (idleCounters[i] > 4) {
-						idleCounters[i] -= 5;   /* 22 ms in units of 4 ms */
-					} else {
-						// reset the counter and schedule a report for this
-						idleCounters[i] = idleRates[i];
-						must_report |= (1<<i);
-					}
-				}
-			}
-		}
-
-	
 			
 		if(must_report)
 		{

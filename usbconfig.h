@@ -5,7 +5,7 @@
  * Tabsize: 4
  * Copyright: (c) 2005 by OBJECTIVE DEVELOPMENT Software GmbH
  * License: GNU GPL v2 (see License.txt) or proprietary (CommercialLicense.txt)
- * This Revision: $Id: usbconfig.h,v 1.8 2012-04-09 04:05:43 cvs Exp $
+ * This Revision: $Id: usbconfig.h,v 1.9 2013-04-20 17:24:53 cvs Exp $
  */
 
 #ifndef __usbconfig_h_included__
@@ -129,21 +129,12 @@ rename it to "usbconfig.h". Then edit it accordingly.
 
 /* -------------------------- Device Description --------------------------- */
 
-/* This vendor ID comes from "Mecanique" which used to sale 
- * ranges of product IDs. */
-#define  USB_CFG_VENDOR_ID       0x81, 0x17
-
-/* This product ID is registered to the author. If you change the code 
- * and wish to distribute it, please obtain and use your own VID/PID. Otherwise,
- * there are serious compatibility and conflict risks, under Windows
- * in particular.
- *
- * See the technical notes in usbdrv/USBID-License.txt for more details. 
- */
-#define  USB_CFG_DEVICE_ID       0x9d, 0x0a
+/* This is the Dracal technnologies inc. (Raphnet technologies) VID */
+#define  USB_CFG_VENDOR_ID       0x8B, 0x28
+#define  USB_CFG_DEVICE_ID       0x03, 0x00
 
 
-#define USB_CFG_DEVICE_VERSION  0x03, 0x01
+#define USB_CFG_DEVICE_VERSION  0x04, 0x01
 /* Version number of the device: Minor number first, then major number.
  */
 #define USB_CFG_VENDOR_NAME     'r', 'a', 'p', 'h', 'n', 'e', 't', '.', 'n', 'e', 't'

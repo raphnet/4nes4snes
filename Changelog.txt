@@ -1,3 +1,9 @@
+--- v1.4 (April 20, 2013)
+- Support for Atmega168. Use Makefile.atmega168.
+- New USB VID/PID
+- Simplified main loop by remving setIdle/getIdle implementation. Optional for
+  joysticks according to HID specification appendix G.
+
 --- v1.3 (April 2012)
 - Added support for SNES multitaps in 4 player mode.
 

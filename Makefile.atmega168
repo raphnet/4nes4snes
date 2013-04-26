@@ -46,19 +46,33 @@ $(HEXFILE):	$(ELFFILE)
 flash: $(HEXFILE)
 	$(AVRDUDE) -Uflash:w:$(HEXFILE) -B 1.0
 
+# Extended fuse byte (Datasheet Table 28-5)
+#
 #  -  -  -  -  -  BOOTSZ1  BOOTSZ0  BOOTRST
 #  0  0  0  0  0     0        0        1
+#
 EFUSE=0x01
 
+# Fuse high byte (Datasheet Table 28-6)
+#
 # RSTDISBL  DWEN  SPIEN   WDTON  EESAVE  BODLEVEL2  BODLEVEL1  BODLEVEL0
-#    1        1      0      1      1         1          1          1
+#    1        1      0      1      0         1          0          1
+#
 HFUSE=0xd5
+
+# Fuse low byte (Datasheet Table 28-7)
 #
 # CKDIV8   CKOUT   SUT1  SUT0  CKSEL3  CKSEL2  CKSEL1  CKSEL0
 #    1        1      0     1      0      1       1       1
 #
-# Full swing crystal oscillator, BOD enabled
-LFUSE=0xDF
+# Full swing crystal oscillator
+# 0.4 - 20 MHz : CKSEL3..1  011
+#
+# Crystal Oscillator, BOD enabled (Table 9-6)
+# CKSEL0  : 1
+# SUT1..0 : 01
+#
+LFUSE=0xD7
 
 fuse:
 	$(AVRDUDE) -e -Uefuse:w:$(EFUSE):m -Uhfuse:w:$(HFUSE):m -Ulfuse:w:$(LFUSE):m -B 20.0 -v

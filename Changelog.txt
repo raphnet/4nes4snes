@@ -1,3 +1,10 @@
+--- v1.4.1 (April 26, 2013)
+- Reduced declared max current from 120mA to 100mA. This makes
+it possible to connect the adapter to my keyboard USB port but
+is still a conservative estimate for the worst combination
+of hypothetical non-standard power hungry controllers.
+- Some code cleanups
+
 --- v1.4 (April 20, 2013)
 - Support for Atmega168. Use Makefile.atmega168.
 - New USB VID/PID

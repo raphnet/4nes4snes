@@ -1,3 +1,6 @@
+--- v1.4.2 (July 14, 2013)
+- Corrected the USB Vendor ID
+
 --- v1.4.1 (April 26, 2013)
 - Reduced declared max current from 120mA to 100mA. This makes
 it possible to connect the adapter to my keyboard USB port but

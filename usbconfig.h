@@ -5,7 +5,7 @@
  * Tabsize: 4
  * Copyright: (c) 2005 by OBJECTIVE DEVELOPMENT Software GmbH
  * License: GNU GPL v2 (see License.txt) or proprietary (CommercialLicense.txt)
- * This Revision: $Id: usbconfig.h,v 1.11 2013-07-14 04:29:40 cvs Exp $
+ * This Revision: $Id: usbconfig.h,v 1.12 2013-07-14 04:30:45 cvs Exp $
  */
 
 #ifndef __usbconfig_h_included__
@@ -130,7 +130,7 @@ rename it to "usbconfig.h". Then edit it accordingly.
 /* -------------------------- Device Description --------------------------- */
 
 /* This is the Dracal technologies inc. (Raphnet technologies) VID */
-#define  USB_CFG_VENDOR_ID       0x8B, 0x28
+#define  USB_CFG_VENDOR_ID       0x9B, 0x28
 #define  USB_CFG_DEVICE_ID       0x03, 0x00
 
 

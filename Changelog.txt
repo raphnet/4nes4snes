@@ -1,3 +1,6 @@
+--- v1.4.3 (August 23, 2041)
+- Fix compilation with modern GCC
+
 --- v1.4.2 (July 14, 2013)
 - Corrected the USB Vendor ID
 

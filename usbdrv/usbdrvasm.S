@@ -5,7 +5,7 @@
  * Tabsize: 4
  * Copyright: (c) 2007 by OBJECTIVE DEVELOPMENT Software GmbH
  * License: GNU GPL v2 (see License.txt) or proprietary (CommercialLicense.txt)
- * Revision: $Id: usbdrvasm.S,v 1.2 2009-05-02 12:41:41 cvs Exp $
+ * Revision: $Id: usbdrvasm.S,v 1.3 2014-08-23 23:58:32 cvs Exp $
  */
 
 /*
@@ -74,7 +74,7 @@ the file appropriate for the given clock rate.
 #   define nop2     rjmp    .+0 /* jump to next instruction */
 
 #   ifndef USB_INTR_VECTOR /* default to hardware interrupt INT0 */
-#       define USB_INTR_VECTOR  SIG_INTERRUPT0
+#       define USB_INTR_VECTOR  INT0_vect
 #   endif
     .text
     .global USB_INTR_VECTOR

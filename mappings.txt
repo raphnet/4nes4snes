@@ -1,0 +1,28 @@
+
+Mappings before version 1.5
+
+USB Button   SNES button   NES button
+--------------------------------------
+0            B
+1            Y
+2            SELECT
+3            START
+4            A             START
+5            X             SELECT
+6            L             A
+7            R             B
+
+Mappings since version 1.5
+
+USB Button   SNES button   NES button
+--------------------------------------
+0            B             B
+1            Y
+2            SELECT        SELECT
+3            START         START
+4            A             A
+5            X
+6            L
+7            R
+
+

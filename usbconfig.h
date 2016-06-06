@@ -5,7 +5,7 @@
  * Tabsize: 4
  * Copyright: (c) 2005 by OBJECTIVE DEVELOPMENT Software GmbH
  * License: GNU GPL v2 (see License.txt) or proprietary (CommercialLicense.txt)
- * This Revision: $Id: usbconfig.h,v 1.12 2013-07-14 04:30:45 cvs Exp $
+ * This Revision: $Id: usbconfig.h,v 1.13 2016-06-06 02:42:27 cvs Exp $
  */
 
 #ifndef __usbconfig_h_included__
@@ -134,7 +134,7 @@ rename it to "usbconfig.h". Then edit it accordingly.
 #define  USB_CFG_DEVICE_ID       0x03, 0x00
 
 
-#define USB_CFG_DEVICE_VERSION  0x04, 0x01
+#define USB_CFG_DEVICE_VERSION  0x05, 0x01
 /* Version number of the device: Minor number first, then major number.
  */
 #define USB_CFG_VENDOR_NAME     'r', 'a', 'p', 'h', 'n', 'e', 't', '.', 'n', 'e', 't'
@@ -240,13 +240,8 @@ rename it to "usbconfig.h". Then edit it accordingly.
 #define USB_CFG_DESCR_PROPS_STRING_0                0
 #define USB_CFG_DESCR_PROPS_STRING_VENDOR           0
 
-
-/* 
- * Conveniently all 16 characters long so we can use fixed length. 
- * USB strings use two bytes per character.
- */
-#define DEVICE_STRING_LENGTH	9 /* 16 characters */
-#define DEFAULT_PROD_STRING	'4','n','e','s','4','s','n','e','s'
+#define DEVICE_STRING_LENGTH	14
+#define DEFAULT_PROD_STRING	'4','n','e','s','4','s','n','e','s',' ','v','1','.','5'
 
 #define USB_CFG_DESCR_PROPS_STRING_PRODUCT          (USB_PROP_LENGTH(((DEVICE_STRING_LENGTH+2)*2)) | USB_PROP_IS_RAM)
 

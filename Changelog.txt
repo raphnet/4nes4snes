@@ -1,3 +1,7 @@
+--- v1.5 (June 4, 2016)
+ - Changed NES to USB button mapping to match SNES (eg: NES A = SNES A...).
+ - Changed product name string
+
 --- v1.4.3 (August 23, 2041)
 - Fix compilation with modern GCC
 

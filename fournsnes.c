@@ -1,7 +1,7 @@
 /* Name: fournsnes.c
  * Project: Multiple NES/SNES to USB converter
  * Author: Raphael Assenat <raph@raphnet.net>
- * Copyright: (C) 2007-2012 Raphael Assenat <raph@raphnet.net>
+ * Copyright: (C) 2007-2016 Raphael Assenat <raph@raphnet.net>
  * License: GPLv2
  * Tabsize: 4
  */
@@ -508,6 +508,18 @@ static char getY(unsigned char nesByte1)
 	return y;
 }
 
+/* Move the bits around so that identical NES and SNES buttons
+ * use the same USB button IDs. */
+static unsigned char nesReorderButtons(unsigned char raw)
+{
+	unsigned char v;
+	v = (raw & 0x80) >> 3;
+	v |= (raw & 0x40) >> 6;
+	v |= (raw & 0x20) >> 3;
+	v |= (raw & 0x10) >> 1;
+	return v;
+}
+
 static unsigned char snesReorderButtons(unsigned char bytes[2])
 {
 	unsigned char v;
@@ -563,7 +575,7 @@ static char fournsnesBuildReport(unsigned char *reportBuffer, char id)
 			reportBuffer[0]=id;
 			reportBuffer[1]=getX(last_read_controller_bytes[idx]);
 			reportBuffer[2]=getY(last_read_controller_bytes[idx]);
-			reportBuffer[3] = last_read_controller_bytes[idx] & 0xf0;
+			reportBuffer[3] = nesReorderButtons(last_read_controller_bytes[idx]);
 		}
 
 		last_reported_controller_bytes[idx] = last_read_controller_bytes[idx];
@@ -579,7 +591,7 @@ static char fournsnesBuildReport(unsigned char *reportBuffer, char id)
 		reportBuffer[2]=getY(last_read_controller_bytes[idx*2]);
 
 		if (nesMode & (0x01<<idx))
-			reportBuffer[3] = last_read_controller_bytes[idx*2] & 0xf0;
+			reportBuffer[3] = nesReorderButtons(last_read_controller_bytes[idx*2]);
 		else
 			reportBuffer[3] = snesReorderButtons(&last_read_controller_bytes[idx*2]);
 	}
